@@ -1,0 +1,29 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}"
+    },
+    {
+      "type": "java",
+      "name": "lox test",
+      "request": "launch",
+      "mainClass": "com.nix.lox.Lox",
+      "projectName": "LoxIntepreterBook_d44c1f26",
+      "args": "D:/VsCode/LoxIntepreterBook/test.lox"
+    },
+    {
+      "type": "java",
+      "name": "GenerateAst",
+      "request": "launch",
+      "mainClass": "com.nix.tool.GenerateAst",
+      "projectName": "LoxIntepreterBook_d44c1f26"
+    }
+  ]
+}

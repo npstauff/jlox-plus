@@ -1,0 +1,2 @@
+javac com/nix/tool/GenerateAst.java 
+java com.nix.tool.GenerateAst com/nix/lox
