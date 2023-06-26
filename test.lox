@@ -1,7 +1,0 @@
-class Program{
-  var x = 5;
-}
-
-class Test < Program{
-  var x = 10;
-}
