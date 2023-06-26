@@ -23,6 +23,18 @@ Running the jar
 java -cp <path-to-jar> com.nix.lox.Lox
 ```
 # Lox syntax and examples
+
+| Operator         | code |  function (where x = the left hand side, y = the right hand side)|
+|--------------|:-----:|-----------:|
+| equals | = | assigns `y` to `x` |
+| equals check      |  == | returns `true` if `x` equals `y` |
+| not equals check      |  != | returns `true` if `x` does not equal `y` |
+| not      | ! | returns the opposite of `x` |
+| get      | . | finds a property on an object |
+| null-safe get      | ?. | finds a property on an object, if the object is `nil`, it returns nil without trying to find the property |
+| null-safe assign      | ?= | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
+| null-safe check      | ?? | returns `x` unless its `nil` otherwise it returns `y`|
+
 Variables
 ---
 Variables in lox are dynamic, and can be assigned as either constant or variable
