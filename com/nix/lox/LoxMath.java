@@ -26,7 +26,24 @@ public class LoxMath extends LoxNative{
     methods.put("min", min(environment));
     methods.put("max", max(environment));
     methods.put("abs", abs(environment));
+    methods.put("sqrt", sqrt(environment));
     return methods;
+  }
+
+  private LoxFunction sqrt(Environment environment) {
+    return new LoxFunction(new LoxCallable() {
+
+      @Override
+      public int arity() {
+        return 1;
+      }
+
+      @Override
+      public Object call(Interpreter interpreter, List<Object> arguments) {
+        return (double)Math.sqrt((double)arguments.get(0));
+      }
+      
+    }, environment, false, true);
   }
 
   private LoxFunction round(Environment environment) {
