@@ -213,6 +213,7 @@ x.remove(0);
 ```
 
 **Map**
+
 Maps in lox are similar to lists, in which they are basically just a list of keys and a list of values
 ```Java
 //Methods
