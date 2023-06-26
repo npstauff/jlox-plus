@@ -109,6 +109,8 @@ class Program{
 class App < Program{
   init(){
     super.init();
+    this.x = 10;
+    super.x = 15;
   }
 }
 
@@ -251,3 +253,34 @@ Color.white();
 Color().set(r, g, b);
 Color().setAlpha(a);
 ```
+
+# Native Function
+jlox+ has many built-in functions for stuff like reading and writing
+
+**The 'println' and 'print' functions take the place of the Lox 'print' statement**
+
+
+```java
+//Returns the next string typed by the user
+readLine();
+
+//Returns the next number entered by the user
+readNum();
+
+//Returns the next boolean entered by the user
+readBool();
+
+//Returns the text contents of the given file
+scanFile(filePath);
+
+//Prints the given expression without a linebreak at the end
+print(expression);
+
+//Prints the given expression with a linebreak at the end
+println(expression);
+
+//Error logs the given expression with a linebreak at the end
+error(expression);
+```
+
+# MORE FEATURES TO COME :)
