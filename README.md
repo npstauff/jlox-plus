@@ -20,7 +20,7 @@ This will make a jar file that you can use for the next command
 Running the jar
 ---
 ```shell
-java -cp <path-to-jar> com.nix.lox.Lox
+java -cp <path-to-jar> com.nix.lox.Lox <file-to-run>.lox
 ```
 # Lox syntax and examples
 
