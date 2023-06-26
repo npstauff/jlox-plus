@@ -145,48 +145,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       
     }, true);
 
-    globals.define("writeFile", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 2;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        String data = arguments.get(0).toString();
-        String path = (String)arguments.get(1);
-        try {
-          File f = new File(path);
-          if(!f.exists()){
-            f.createNewFile();
-          }
-          BufferedWriter writer = new BufferedWriter(new FileWriter(f));
-          writer.write(data);
-          writer.close();
-        } catch (Exception e) {
-          throw new RuntimeError(new Token(TokenType.OBJECT, "", path, -1), "Problem creating file: " + e.getStackTrace());
-        }
-        
-        return null;
-      }
-      
-    }, true);
-
-    globals.define("round", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 1;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        return (double)Math.round((double)arguments.get(0));
-      }
-      
-    }, true);
-
     globals.define("print", new LoxCallable() {
 
       @Override
