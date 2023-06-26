@@ -231,3 +231,23 @@ var obj = map.get("item2");
 var keyList = map.keys();
 var valueList = map.values();
 ```
+
+**Color**
+
+simple color class, rgba
+```java
+//fields
+var r = 0;
+var g = 0;
+var b = 0;
+var a = 0;
+
+Color.red();
+Color.green();
+Color.blue();
+Color.black();
+Color.white();
+
+Color().set(r, g, b);
+Color().setAlpha(a);
+```
