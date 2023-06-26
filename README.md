@@ -5,22 +5,22 @@ Building is a little finnicky due to the JRE, but i'll do my best to explain it
 
 Compiling to .class
 ---
-```shell
+```powershell
 javac -d build com/nix/lox/*.java
 ```
 This will turn each .java file int .class file and place it into the build folder
 
 Building to jar
 ---
-```shell
+```powershell
 jar -cvf <name-of-jar-to-make>.jar Manifest.txt -C build .
 ```
 This will make a jar file that you can use for the next command
 
 Running the jar
 ---
-```shell
-java -cp <path-to-jar> com.nix.lox.Lox <file-to-run>.lox
+```powershell
+java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 ```
 # Lox syntax and examples
 
@@ -39,12 +39,12 @@ Variables
 ---
 Variables in lox are dynamic, and can be assigned as either constant or variable
 
-```c#
+```js
 var x = 5;
 const x = 5;
 ```
 Assigning variables works as expected, with added support for postfix increments and decrements
-```c#
+```js
 var x = 10;
 x += 5;
 x -= 5;
@@ -54,13 +54,13 @@ x++;
 x--;
 ```
 jlox+ also supports the power operator
-```c#
+```js
 var x = 5;
 x ** 2;
 //Result: 25
 ```
 Constants work the same, except that they can't be reassigned
-```c#
+```js
 const x = 5;
 x = 6;
 //Will throw error
@@ -68,7 +68,7 @@ x = 6;
 Control Flow
 ---
 Control flow in lox is similar to languages like C or Java
-```c#
+```js
 var x = 5;
 if(x == 5){
   println(x);
@@ -78,13 +78,13 @@ else{
 }
 ```
 jlox+ also supports while and for loops.
-```c#
+```js
 var x = 5;
 while(x != 10){
   println("not ten");
 }
 ```
-```c#
+```js
 for(var i = 0; i < 10; i++){
   println("I: " + i);
 }
@@ -108,7 +108,7 @@ Classes
 jlox+ is an object oriented language that supports classes and single-inheritance.
 constructers are defined by making an `init()` method.
 instances are created by calling the class like a function and passing the parameters for its `init()` method.
-```java
+```js
 class Program{
   var x = 0;
   const y = 0;
@@ -134,6 +134,19 @@ Variables
 ---
 Constants, postfix increments and decrements. Variables declared in a class.
 
+Control Flow
+---
+I added a new type of loop, although I dont know how useful it really is. When statements execute their block until the condition evaluates to FALSE, and then they execute their do block.
+```c#
+when(x > 5){
+  //runs until x > 5
+  x++;
+} do{
+  //executed once the when condition is false
+  println("x > 5!");
+}
+```
+
 Functions
 ---
 Constant functions
@@ -145,8 +158,8 @@ test = two; //not allowed
 
 Classes
 ---
-functions in classes can be marked `common` which functions like `static` in languages such as java or C
-```java
+functions in classes can be marked `common` which works like `static` in languages such as java or C
+```js
 class Test{
   common sayHi(){
     println("hi");
@@ -265,7 +278,7 @@ Color().set(r, g, b);
 Color().setAlpha(a);
 ```
 
-# Native Function
+# Native Functions
 jlox+ has many built-in functions for stuff like reading and writing
 
 **The 'println' and 'print' functions take the place of the Lox 'print' statement**
@@ -294,4 +307,15 @@ println(expression);
 error(expression);
 ```
 
-# MORE FEATURES TO COME :)
+# TODO
+- [ ] Ternary operators
+- [ ] String functions
+- [ ] operator overloading
+- [ ] extension methods
+- [ ] prefix increment/decrement
+- [ ] break from loops
+- [ ] continue in loops
+- [ ] packages
+- [ ] multi-file import
+
+**Not all of these will neccessary be implemented they are just things I want to do**
