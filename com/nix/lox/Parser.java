@@ -286,6 +286,9 @@ public class Parser {
           case POWER:
             type = AssignType.POWER;
             break;
+          case SLASH_ASSIGN:
+            type = AssignType.DIVIDE;
+            break;
         }
         
         Token equals = previous();

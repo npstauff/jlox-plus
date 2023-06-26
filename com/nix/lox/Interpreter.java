@@ -511,6 +511,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             right = (double)(Math.pow(leftD, rightD));
             break;
           }
+          case DIVIDE:{
+            if(!(leftIsDouble && rightIsDouble)){
+              throw new RuntimeError(new Token(TokenType.INCREMENT, left.toString(), left, 0), "Can only divide numbers");
+            }
+            right = (double)(leftD / rightD);
+            break;
+          }
         }
       }
     
