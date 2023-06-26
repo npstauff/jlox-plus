@@ -110,7 +110,6 @@ class App < Program{
   init(){
     super.init();
     this.x = 10;
-    super.x = 15;
   }
 }
 
