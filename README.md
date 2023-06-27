@@ -185,7 +185,7 @@ System.random(0, 100);
 **Math**
 
 the math class contains a few `common` functions for doing math
-```java
+```js
 Math.round(a);
 Math.floor(a);
 Math.min(a, b);
@@ -202,20 +202,20 @@ by default in jlox+, all classes derive from `Object`.
 *Methods*
 
 - `toString()` which by default prints `Lox.Object$<object-type>`.
-```java
+```js
 toString(){
   return "Lox.Object$"+type;
 }
 ```
 - `typeof(other)` returns true if the objects are the same type
-```java
+```js
 var x = Object();
 var y = System();
 x.typeof(y); //false
 x.typeof(Object); //true
 ```
 - `fields()` returns a LoxMap containing the fields of said object
-```java
+```js
 var x = System();
 var fields = x.fields();
 //loop through map
@@ -225,7 +225,7 @@ var fields = x.fields();
 
 Lists in lox are ambiguous, meaning they dont have a specific type. You can add or remove any object.
 Lists contain some basic methods.
-```java
+```js
 //Methods
 add(a);
 get(i);
@@ -243,7 +243,7 @@ x.remove(0);
 **Map**
 
 Maps in lox are similar to lists, in which they are basically just a list of keys and a list of values
-```Java
+```js
 //Methods
 put(key, value);
 get(key);
@@ -263,7 +263,7 @@ var valueList = map.values();
 **Color**
 
 simple color class, rgba
-```java
+```js
 //fields
 var r = 0;
 var g = 0;
@@ -286,7 +286,7 @@ jlox+ has many built-in functions for stuff like reading and writing
 **The 'println' and 'print' functions take the place of the Lox 'print' statement**
 
 
-```java
+```js
 //Returns the next string typed by the user
 readLine();
 
