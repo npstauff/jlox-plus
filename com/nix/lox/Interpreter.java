@@ -197,6 +197,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object left = evaluate(expr.left);
     Object right = evaluate(expr.right);
 
+    if(left instanceof Integer){
+      left = (Integer)left+0.0;
+    }
+    if(right instanceof Integer){
+      right = (Integer)right+0.0;
+    }
+
     switch(expr.operator.type){
         case NULL_EQUAL:{
           if(left == null || right == null){
@@ -386,10 +393,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object right = evaluate(expr.value);
     boolean isConstant = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).constant : false;
     Integer distance = locals.get(expr);
-    if(environment.getAt(distance != null ? distance : 0, expr.name.lexeme) != null){
+
+    boolean hasObject = distance != null ? 
+      environment.getAt(distance, expr.name.lexeme) != null : environment.get(expr.name) != null;
+
+    if(hasObject){
       boolean leftIsDouble = false;
       boolean rightIsDouble = false;
-      Object left = environment.getAt(distance != null ? distance : 0, expr.name.lexeme);
+      Object left = distance != null ? environment.getAt(distance, expr.name.lexeme) : environment.get(expr.name);
 
       if(!validAssignment(left, right) && (expr.type != AssignType.INCREMENT && expr.type != AssignType.DECREMENT)){
         Lox.error(new Token(TokenType.EQUAL, left.toString(), 0, 0), "Not a valid assignment");
@@ -416,8 +427,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       else{
         leftS = (String)left;
       }
+      
+      boolean special = distance != null ? (environment.getAt(distance, expr.name.lexeme) != null
+       || globals.getAt(distance, expr.name.lexeme) != null) : (environment.get(expr.name) != null || globals.get(expr.name) != null);
 
-      if(environment.getAt(distance != null ? distance : 0, expr.name.lexeme) != null || globals.getAt(distance != null ? distance : 0, expr.name.lexeme) != null){
+      if(special){
+        
         switch (expr.type){
           case ADD:{
             if(leftIsDouble && rightIsDouble){
