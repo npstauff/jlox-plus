@@ -30,7 +30,8 @@ public class Environment {
   }
 
   Object getAt(int distance, String name){
-    return ancestor(distance).values.get(name).value;
+    Field value = ancestor(distance).values.get(name);
+    return value != null ? value.value : null;
   }
 
   void assignAt(int distance, Token name, Object value, boolean isConstant){
