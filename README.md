@@ -1,6 +1,8 @@
 # Jlox-plus
 Jlox-plus is an superset of the Lox language created by **Robert Nystrom**. It was built by following the first two parts of _Crafting Interpreters_ and then adding my own spin onto the language.
-#Building
+
+# Building
+
 Building is a little finnicky due to the JRE, but i'll do my best to explain it
 
 Compiling to .class
