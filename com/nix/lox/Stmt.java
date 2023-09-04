@@ -11,8 +11,12 @@ abstract class Stmt {
     R visitIfStmt(If stmt);
     R visitWhenStmt(When stmt);
     R visitReturnStmt(Return stmt);
+    R visitExpectStmt(Expect stmt);
     R visitVarStmt(Var stmt);
     R visitWhileStmt(While stmt);
+    R visitTestStmt(Test stmt);
+    R visitGetFileStmt(GetFile stmt);
+    R visitModuleStmt(Module stmt);
   }
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
@@ -59,8 +63,9 @@ abstract class Stmt {
     final Expr expression;
   }
   static class Function extends Stmt {
-    Function(Token name, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant) {
+    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant) {
       this.name = name;
+      this.extClass = extClass;
       this.params = params;
       this.body = body;
       this.isStatic = isStatic;
@@ -73,6 +78,7 @@ abstract class Stmt {
     }
 
     final Token name;
+    final Token extClass;
     final List<Token> params;
     final List<Stmt> body;
     final boolean isStatic;
@@ -124,12 +130,27 @@ abstract class Stmt {
     final Token keyword;
     final Expr value;
   }
+  static class Expect extends Stmt {
+    Expect(Token keyword, Expr value) {
+      this.keyword = keyword;
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitExpectStmt(this);
+    }
+
+    final Token keyword;
+    final Expr value;
+  }
   static class Var extends Stmt {
-    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic) {
+    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer) {
       this.name = name;
       this.initializer = initializer;
       this.isConstant = isConstant;
       this.isStatic = isStatic;
+      this.pointer = pointer;
     }
 
     @Override
@@ -141,6 +162,7 @@ abstract class Stmt {
     final Expr initializer;
     final boolean isConstant;
     final boolean isStatic;
+    final boolean pointer;
   }
   static class While extends Stmt {
     While(Expr condition, Stmt body) {
@@ -155,6 +177,46 @@ abstract class Stmt {
 
     final Expr condition;
     final Stmt body;
+  }
+  static class Test extends Stmt {
+    Test(Expr name, Stmt body) {
+      this.name = name;
+      this.body = body;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitTestStmt(this);
+    }
+
+    final Expr name;
+    final Stmt body;
+  }
+  static class GetFile extends Stmt {
+    GetFile(Token name, Expr path) {
+      this.name = name;
+      this.path = path;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitGetFileStmt(this);
+    }
+
+    final Token name;
+    final Expr path;
+  }
+  static class Module extends Stmt {
+    Module(Token keyword) {
+      this.keyword = keyword;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitModuleStmt(this);
+    }
+
+    final Token keyword;
   }
 
    abstract <R> R accept(Visitor<R> visitor);

@@ -21,7 +21,11 @@ public class LoxSystem extends LoxNative{
 
   public Map<String, LoxFunction> defineFunctions(Environment environment) {
     Map<String, LoxFunction> methods = new HashMap<>();
-    methods.put("debug", debug(environment));
+    methods.put("println", debug(environment, true, false));
+    methods.put("print", debug(environment, false, false));
+    methods.put("cls", cls(environment));
+    methods.put("errln", debug(environment, true, true));
+    methods.put("err", debug(environment, false, true));
     methods.put("random", random(environment));
     return methods;
   }
@@ -31,20 +35,39 @@ public class LoxSystem extends LoxNative{
 
       @Override
       public int arity() {
-        return 2;
+        return 3;
       }
 
       @Override
       public Object call(Interpreter interpreter, List<Object> arguments) {
         double lower = (double)arguments.get(0);
         double upper = (double)arguments.get(1);
-        return Math.random()*upper+lower;
+        boolean inclusive = (boolean)arguments.get(2);
+        return (double)(Math.random() * (upper - lower)) + lower + (inclusive ? 1 : 0);
       }
       
     }, environment, false, true);
   }
 
-  LoxFunction debug(Environment environment){
+  LoxFunction debug(Environment environment, boolean newline, boolean err){
+    return new LoxFunction(new LoxCallable() {
+
+      @Override
+      public int arity() {
+        return 1;
+      }
+
+      @Override
+      public Object call(Interpreter interpreter, List<Object> arguments) {
+        if(!err) System.out.print(arguments.get(0) + (newline ? "\n" : ""));
+        else System.err.print(arguments.get(0) + (newline ? "\n" : ""));
+        return null;
+      }
+      
+    }, environment, false, true);
+  }
+
+  LoxFunction cls(Environment environment){
     return new LoxFunction(new LoxCallable() {
 
       @Override
@@ -54,14 +77,15 @@ public class LoxSystem extends LoxNative{
 
       @Override
       public Object call(Interpreter interpreter, List<Object> arguments) {
-        return "debug from system";
+        System.out.print("\033[H\033[2J");  
+        System.out.flush();
+        return null;
       }
       
-    }, environment, false);
+    }, environment, false, true);
   }
 
   @Override
   public void defineFields() {
-    put("system", new LoxInstance(this, interpreter), true, false);
   }
 }

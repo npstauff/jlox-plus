@@ -1,7 +1,7 @@
 package com.nix.lox;
 
 enum TokenType {
-  NEW, ARROW,
+  NEW, ARROW, PTR, REF, METHOD, CLASSEXT, TEST, EXPECT, GETFILE, MODULE,
   // Single-character tokens.
   LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
   COMMA, DOT, SEMICOLON, 

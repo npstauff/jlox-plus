@@ -13,12 +13,15 @@ import com.nix.lox.Expr.Set;
 import com.nix.lox.Expr.Super;
 import com.nix.lox.Expr.This;
 import com.nix.lox.Stmt.Class;
+import com.nix.lox.Stmt.GetFile;
+import com.nix.lox.Stmt.Module;
 import com.nix.lox.Stmt.When;
 
 public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
+  private boolean inTest = false;
 
   private enum ClassType {
     NONE,
@@ -66,12 +69,37 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     return null;
   }
 
+  private void resolveFunction(Stmt.Function function, FunctionType type) {
+    FunctionType enclosingFunction = currentFunction;
+    currentFunction = type;
+
+    beginScope();
+    for (Token param : function.params) {
+      declare(param);
+      define(param);
+    }
+    resolve(function.body);
+    endScope();
+    currentFunction = enclosingFunction;
+  }
+
   @Override
   public Void visitFunctionStmt(Stmt.Function stmt) {
     declare(stmt.name);
     define(stmt.name);
 
     resolveFunction(stmt, FunctionType.FUNCTION);
+    return null;
+  }
+
+  @Override
+  public Void visitTestStmt(Stmt.Test stmt) {
+    resolve(stmt.name);
+
+    beginScope();
+    resolve(stmt.body);
+    endScope();
+
     return null;
   }
 
@@ -115,11 +143,22 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   }
 
   @Override
+  public Void visitExpectStmt(Stmt.Expect stmt) {
+    if (stmt.value != null) {
+      resolve(stmt.value);
+    }
+
+    return null;
+  }
+
+  @Override
   public Void visitWhileStmt(Stmt.While stmt) {
     resolve(stmt.condition);
     resolve(stmt.body);
     return null;
   }
+
+  
 
   @Override
   public Void visitBinaryExpr(Expr.Binary expr) {
@@ -163,19 +202,7 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     return null;
   }
 
-  private void resolveFunction(Stmt.Function function, FunctionType type) {
-    FunctionType enclosingFunction = currentFunction;
-    currentFunction = type;
-
-    beginScope();
-    for (Token param : function.params) {
-      declare(param);
-      define(param);
-    }
-    resolve(function.body);
-    endScope();
-    currentFunction = enclosingFunction;
-  }
+  
 
   private void resolveLocal(Expr expr, Token name) {
     for (int i = scopes.size() - 1; i >= 0; i--) {
@@ -319,6 +346,16 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   @Override
   public Void visitNewExpr(New expr) {
     resolveLocal(expr, expr.keyword);
+    return null;
+  }
+
+  @Override
+  public Void visitGetFileStmt(GetFile stmt) {
+    return null;
+  }
+
+  @Override
+  public Void visitModuleStmt(Module stmt) {
     return null;
   }
 

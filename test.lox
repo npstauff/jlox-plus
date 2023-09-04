@@ -1,1 +1,5 @@
-mut x = spawn Object();
+import "test2.lox";
+import "test3.lox";
+
+System::println(x);
+System::println(y);

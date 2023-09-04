@@ -34,10 +34,15 @@ public class Scanner {
     keywords.put("while",  TokenType.WHILE);
     keywords.put("when",  TokenType.WHEN);
     keywords.put("do",  TokenType.FINALLY);
-    keywords.put("public",  TokenType.STATIC);
+    keywords.put("shared",  TokenType.STATIC);
     keywords.put("fixed",  TokenType.CONST);
     keywords.put("spawn",  TokenType.NEW);
     keywords.put("new",  TokenType.NEW);
+    keywords.put("method",  TokenType.METHOD);
+    keywords.put("test",  TokenType.TEST);
+    keywords.put("expect",  TokenType.EXPECT);
+    keywords.put("import",  TokenType.GETFILE);
+    keywords.put("module",  TokenType.MODULE);
   }
 
   Scanner(String source){
@@ -151,6 +156,15 @@ public class Scanner {
         if(match(':')){
           addToken(TokenType.GETSTATIC);
         }
+        else{
+          addToken(TokenType.CLASSEXT);
+        }
+        break;
+      case '$':
+        addToken(TokenType.PTR);
+        break;
+      case '&':
+        addToken(TokenType.REF);
         break;
 
       default:

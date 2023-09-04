@@ -155,8 +155,8 @@ public class LoxGraphics extends LoxNative implements ActionListener{
 
   public void updateDimensions(){
     if(frame != null){
-      put("width", (double)frame.getWidth(), false, false);
-      put("height", (double)frame.getHeight(), false, false);
+      put("width", (double)frame.getWidth(), false, false, false);
+      put("height", (double)frame.getHeight(), false, false, false);
     }
   }
 

@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import sun.misc.Unsafe;
+
 public class Lox{
   private static Interpreter interpreter = new Interpreter();
   static boolean hadError = false;
@@ -51,7 +53,7 @@ public class Lox{
     Scanner scanner = new Scanner(source);
     List<Token> tokens = scanner.scanTokens();
 
-    Parser parser = new Parser(tokens);
+    com.nix.lox.Parser parser = new com.nix.lox.Parser(tokens, source);
     List<Stmt> statements = parser.parse();
 
     if(hadError) return;

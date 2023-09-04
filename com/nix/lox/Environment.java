@@ -28,8 +28,8 @@ public class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void define(String name, Object value, boolean constant, boolean stat){
-    put(name, new Field(value, constant, stat));
+  void define(String name, Object value, boolean constant, boolean stat, boolean ptr){
+    put(name, new Field(value, constant, stat, ptr));
   }
 
   Object getAt(int distance, String name){
@@ -37,8 +37,8 @@ public class Environment {
     return value != null ? value.value : null;
   }
 
-  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat){
-    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat));
+  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat, boolean ptr){
+    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat, ptr));
   }
 
   Environment ancestor(int distance){
@@ -70,7 +70,8 @@ public class Environment {
     if (values.containsKey(name.lexeme)) {
       isConstant = values.get(name.lexeme).constant;
       boolean stat = values.get(name.lexeme).isstatic;
-      put(name.lexeme, new Field(value, isConstant, stat));
+      boolean ptr = values.get(name.lexeme).pointer;
+      put(name.lexeme, new Field(value, isConstant, stat, ptr));
       return;
     }
 

@@ -8,11 +8,13 @@ class Field{
   Object value;
   final boolean constant;
   final boolean isstatic;
+  final boolean pointer;
 
-  Field(Object value, boolean constant, boolean isstatic){
+  Field(Object value, boolean constant, boolean isstatic, boolean pointer){
     this.value = value;
     this.constant = constant;
     this.isstatic = isstatic;
+    this.pointer = pointer;
   }
 }
 
@@ -43,6 +45,11 @@ public class LoxClass implements LoxCallable{
           throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", methods.get(name).isStatic, 0), "Cannot access non-static method '" + name + "' from static context");
         }
       }
+      else{
+        if(methods.get(name).isStatic){
+          System.out.println("[WARNING] use method '" + name + "' from static context");
+        }
+      }
       return methods.get(name);
     }
 
@@ -60,6 +67,11 @@ public class LoxClass implements LoxCallable{
           throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", fields.get(name).isstatic, 0), "Cannot access non-static field '" + name + "' from static context");
         }
       }
+      else{
+        if(fields.get(name).isstatic){
+          System.out.println("[WARNING] use field '" + name + "' from static context");
+        }
+      }
       return fields.get(name).value;
     }
 
@@ -73,16 +85,18 @@ public class LoxClass implements LoxCallable{
   void set(String name, Object value){
     boolean constant = false;
     boolean isstatic = false;
+    boolean pointer = false;
     if(fields.containsKey(name)){
       constant = fields.get(name).constant;
       isstatic = fields.get(name).isstatic;
+      pointer = fields.get(name).pointer;
       if(constant){
         throw new RuntimeError(new Token(TokenType.VAR, "name", value, 0), "Cant assign '" + value +"' to constant '" + name + "'");
       }
     } 
     else if(methods.containsKey(name)){
       constant = methods.get(name).isConstant;
-      fields.put(name, new Field(value, constant, methods.get(name).isStatic));
+      fields.put(name, new Field(value, constant, methods.get(name).isStatic, false));
     }
 
     if(superClass != null){
@@ -90,26 +104,26 @@ public class LoxClass implements LoxCallable{
         superClass.set(name, value);
       } 
       else{
-        put(name, value, constant, isstatic);
+        put(name, value, constant, isstatic, pointer);
       }
     }
     else{
-      put(name, value, constant, isstatic);
+      put(name, value, constant, isstatic, pointer);
     }
   }
 
-  void put(String name, Object value, boolean constant, boolean isstatic){
+  void put(String name, Object value, boolean constant, boolean isstatic, boolean pointer){
     if(fields.containsKey(name)){
       Field f = fields.get(name);
       if(f.constant){
         throw new RuntimeError(new Token(TokenType.VAR, "name", f.value, 0), "Cant assign to constant '" + name +"'");
       }
       else{
-        fields.put(name, new Field(value, constant, isstatic));
+        fields.put(name, new Field(value, constant, isstatic, pointer));
       }
     }
     else{
-      fields.put(name, new Field(value, constant, isstatic));
+      fields.put(name, new Field(value, constant, isstatic, pointer));
     }
   }
 

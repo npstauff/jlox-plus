@@ -1,5 +1,7 @@
 package com.nix.lox;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,6 +9,7 @@ import java.util.List;
 
 import javax.print.DocFlavor.STRING;
 
+import com.nix.lox.Stmt.Var;
 import com.nix.lox.Stmt.While;
 
 import static com.nix.lox.TokenType.*;
@@ -14,11 +17,16 @@ import static com.nix.lox.TokenType.*;
 public class Parser {
     private static class ParseError extends RuntimeException {}
 
+
+    private List<String> imports = new ArrayList<>();
+    private boolean definedModule = false;
+    private final String source;
     private List<Token> tokens = new ArrayList<>();
     private int current = 0;
 
-    Parser(List<Token> tokens) {
+    Parser(List<Token> tokens, String source) {
       this.tokens = tokens;
+      this.source = source;
     }
 
     List<Stmt> parse(){
@@ -65,32 +73,6 @@ public class Parser {
       Expr.Variable superclass = null;
 
       List<Token> types = new ArrayList<>();
-      if(match(LESS)){
-        
-
-        if(!check(GREATER)){
-          do{
-            if(types.size() >= 255){
-              error(peek(), "Cant have more than 255 templates");
-            }
-            Token t = consume(IDENTIFIER, "Expect template name.");
-            for (Token token : types) {
-              for (Token token2 : types) {
-                if(token.lexeme.equals(token2.lexeme)){
-                  error(t, "Cant have duplicate templates");
-                }
-              }
-            }
-            types.add(t);
-          } while (match(COMMA));
-          consume(GREATER, "Expect '>' after templates");
-
-          for (Token token : types) {
-            System.out.print(token.lexeme + " : ");
-          }
-          System.out.println();
-        }
-      }
 
       if(match(ARROW)){
         consume(IDENTIFIER, "Expect superclass name");
@@ -104,16 +86,26 @@ public class Parser {
       while(!check(RIGHT_BRACE) && !isAtEnd()){
         if(check(STATIC)){
           advance();
-          if(check(IDENTIFIER) && peekNext().type != LEFT_PAREN){
+          if(check(VAR)){
+            advance();
             Token id = peek();
             advance();
+            boolean ptr = false;
+            if(check(PTR)){
+              ptr = true;
+              advance();
+            }
             Token eq = consume(EQUAL, "Expected equality");
             Expr expr = expression();
             Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, false, true));
+            variables.add(new Stmt.Var(id, expr, false, true, ptr));
+          }
+          else if(check(METHOD)){
+            advance();
+            methods.add(function("static method"));
           }
           else{
-            methods.add(function("static method"));
+            error(peek(), "Expected static method or variable");
           }
         }
         else if(check(CONST)){
@@ -121,13 +113,17 @@ public class Parser {
           if(check(IDENTIFIER)){
             Token id = peek();
             advance();
+            boolean ptr = false;
             Token eq = consume(EQUAL, "Expected equality");
             Expr expr = expression();
             Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, true, false));
+            variables.add(new Stmt.Var(id, expr, true, false, ptr));
+          }
+          else if (match(METHOD)){
+            methods.add(function("const method"));
           }
           else{
-            methods.add(function("const method"));
+            error(peek(), "Expected const method or variable");
           }
         }
         else if(check(VAR)){
@@ -135,14 +131,20 @@ public class Parser {
           if(check(IDENTIFIER)){
             Token id = peek();
             advance();
+            boolean ptr = false;
+            if(check(PTR)){
+              ptr = true;
+              advance();
+            }
             consume(EQUAL, "Expected equality");
             Expr expr = expression();
             consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, false, false));
+            variables.add(new Stmt.Var(id, expr, false, false, ptr));
           }
         }
-        else{
-          if(previous().type != CONST) methods.add(function("method"));
+        else if(check(METHOD)){
+          advance();
+          methods.add(function("method"));
         }
       }
 
@@ -152,7 +154,12 @@ public class Parser {
     }
 
     private Stmt.Function function(String kind){
-      Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+      Token extClass = null;
+      Token name = consume(IDENTIFIER, "Expect " + kind + " name or extension class.");
+      if(match(CLASSEXT)){
+          extClass = name;
+          name = consume(IDENTIFIER, "Expect " + kind + " name.");
+      }
       consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
       List<Token> parameters = new ArrayList<>();
       if(!check(RIGHT_PAREN)){
@@ -169,11 +176,17 @@ public class Parser {
 
       consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
       List<Stmt> body = block();
-      return new Stmt.Function(name, parameters, body, kind.equals("static method"), kind.equals("const method"));
+      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"));
     }
 
     private Stmt varDeclaration(boolean constant, boolean isStatic){
       Token name = consume(IDENTIFIER, "Expect variable name.");
+
+      boolean ptr = false;
+      if(match(PTR)){
+        ptr = true;
+        advance();
+      }
 
       Expr initializer = null;
       if(match(EQUAL)){
@@ -181,7 +194,7 @@ public class Parser {
       }
 
       consume(SEMICOLON, "Expect ';' after variable declaration");
-      return new Stmt.Var(name, initializer, constant, isStatic);
+      return new Stmt.Var(name, initializer, constant, isStatic, ptr);
     }
 
     private Stmt statement(){
@@ -189,11 +202,101 @@ public class Parser {
       if(match(FOR)) return forStatement();
       if(match(IF)) return ifStatement();
       if(match(RETURN)) return returnStatement();
+      if(match(EXPECT)) return expectStatement();
       if(match(WHILE)) return whileStatement();
       if(match(WHEN)) return whenStatement();
+      if(match(TEST)) return testStatement();
+      if(match(GETFILE)) return getFileStatement();
+      if(match(MODULE)) return moduleStmt();
       if(match(LEFT_BRACE)) return new Stmt.Block(block());
 
       return expressionStatement();
+    }
+
+    private Stmt moduleStmt() {
+      Token keyword = previous();
+      while (!check(SEMICOLON)) {
+        advance();
+      }
+      consume(SEMICOLON, "Expect ';' after module statement");
+      return new Stmt.Module(previous());
+    }
+
+    private Stmt getFileStatement() {
+      Token keyword = previous();
+      String impName = "";
+      ArrayList<String> paths = new ArrayList<>();
+      while(!check(SEMICOLON)){
+        impName += advance().lexeme;
+      }
+      impName = impName.replace("\"", "");
+      if(imports.contains(impName)){
+        throw error(keyword, "Module '" + impName + "' already imported");
+      }
+      imports.add(impName);
+      if(!impName.contains(".lox")) {
+        //Get all .lox files in the directory
+        File folder = new File(".");
+        File[] listOfFiles = folder.listFiles();
+        for (int i = 0; i < listOfFiles.length; i++) {
+          if (listOfFiles[i].isFile()) {
+            if(listOfFiles[i].getName().contains(".lox")){
+              if(hasModule(impName, listOfFiles[i])){
+                paths.add(listOfFiles[i].getPath());
+              }
+            }
+          }
+        }
+      }
+      else{
+        paths.add(impName);
+      }
+      
+      consume(SEMICOLON, "Expect ';' after getfile statement");
+      for(String path : paths){
+        try{
+          File f = new File(path);
+          java.util.Scanner scanner = new java.util.Scanner(f);
+          String file = "";
+          while(scanner.hasNextLine()){
+            String line = scanner.nextLine();
+            if(line.contains("module") || line.contains("//")) continue;
+            file += line;
+          }
+          List<Token> fileTokens = new Scanner(file).scanTokens();
+          tokens.addAll(current, fileTokens);
+          for(int i = 0; i < tokens.size(); i++){
+            if(this.tokens.get(i).type == TokenType.EOF && i < this.tokens.size() - 1){
+              this.tokens.remove(i);
+              break;
+            }
+          }
+          scanner.close();
+          //tokens.forEach((tkn) -> {System.out.println(tkn.type);});
+        }
+        catch(Exception e){
+          error(keyword, "File '" + path  + "' not found");
+        }
+      }
+      
+      //declaration();
+      return new Stmt.GetFile(keyword, null);
+    }
+
+    boolean hasModule(String module, File file){
+      try {
+        java.util.Scanner scanner = new java.util.Scanner(file);
+        if(scanner.hasNextLine()){
+          String line = scanner.nextLine();
+          if(line.contains("\"" + module + "\"") && line.contains("module")){
+            scanner.close();
+            return true;
+          }
+        }
+      } catch (FileNotFoundException e) {
+        return false;
+      }
+      return false;
     }
 
     private Stmt returnStatement(){
@@ -205,6 +308,17 @@ public class Parser {
 
       consume(SEMICOLON, "Expect ';' after return statement");
       return new Stmt.Return(keyword, value);
+    }
+
+    private Stmt expectStatement(){
+      Token keyword = previous();
+      Expr value = null;
+      if(!check(SEMICOLON)){
+        value = expression();
+      }
+
+      consume(SEMICOLON, "Expect ';' after expect statement");
+      return new Stmt.Expect(keyword, value);
     }
 
     private Stmt forStatement(){
@@ -270,6 +384,16 @@ public class Parser {
       }
 
       return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
+    private Stmt testStatement() {
+      consume(LEFT_PAREN, "Expect '(' after 'test'");
+      Expr condition = expression();
+      consume(RIGHT_PAREN, "Expect ')' after condition");
+
+      Stmt thenBranch = statement();
+
+      return new Stmt.Test(condition, thenBranch);
     }
 
     private Stmt whenStatement() {

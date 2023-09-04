@@ -45,7 +45,7 @@ public class LoxObject extends LoxNative{
   }
 
   public void defineFields(){
-    put("name", "Object$"+this.type, false, false);
+    put("name", "Object$"+this.type, false, false, false);
   }
 
   private LoxFunction init(Environment environment){

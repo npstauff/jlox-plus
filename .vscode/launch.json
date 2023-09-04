@@ -4,6 +4,8 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
+
   
     {
       "type": "java",
@@ -17,7 +19,9 @@
       "request": "launch",
       "mainClass": "com.nix.lox.Lox",
       "projectName": "LoxIntepreterBook_d44c1f26",
-      "args": "D:/VsCode/LoxIntepreterBook/test.lox"
+      "args": [
+         "D:/VsCode/LoxIntepreterBook/test.lox"
+      ] 
     },
     {
       "type": "java",

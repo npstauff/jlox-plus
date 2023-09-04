@@ -37,7 +37,12 @@ public class LoxList extends LoxNative{
 
       @Override
       public Object call(Interpreter interpreter, List<Object> arguments) {
-        return items.contains(arguments.get(0));
+        for(Object item : items){
+          if(item.equals(arguments.get(0))){
+            return true;
+          }
+        }
+        return false;
       }
       
     }, environment, false);

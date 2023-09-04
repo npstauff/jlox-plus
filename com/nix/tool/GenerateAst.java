@@ -33,14 +33,18 @@ public class GenerateAst {
         "Class      : Token name, Expr.Variable superclass," +
                   " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates",
         "Expression : Expr expression",
-        "Function   : Token name, List<Token> params," +
+        "Function   : Token name, Token extClass, List<Token> params," +
                   " List<Stmt> body, boolean isStatic, boolean isConstant",
         "If         : Expr condition, Stmt thenBranch," +
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",
         "Return     : Token keyword, Expr value",
-        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic",
-        "While      : Expr condition, Stmt body"
+        "Expect     : Token keyword, Expr value",
+        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer",
+        "While      : Expr condition, Stmt body",
+        "Test      : Expr name, Stmt body",
+        "GetFile     : Token name, Expr path",
+        "Module    : Token keyword"
       ));
     } catch (IOException e) {
       e.printStackTrace();
