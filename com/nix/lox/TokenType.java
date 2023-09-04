@@ -1,6 +1,7 @@
 package com.nix.lox;
 
 enum TokenType {
+  NEW, ARROW,
   // Single-character tokens.
   LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
   COMMA, DOT, SEMICOLON, 
@@ -31,5 +32,5 @@ enum TokenType {
   FINALLY,
   STATIC,
 
-  OBJECT, NULL_GET, NULL_EQUAL, NULL_EQUAL_EQUAL
+  OBJECT, NULL_GET, NULL_EQUAL, NULL_EQUAL_EQUAL, GETSTATIC
 }

@@ -53,7 +53,7 @@ public class LoxFunction implements LoxCallable{
 
   LoxFunction bind(LoxInstance instance){
     Environment environment = new Environment(closure);
-    environment.define("this", instance, false);
+    environment.define("this", instance, false, false);
     if(!isNative) return new LoxFunction(declaration, environment, isInitializer, isStatic, isConstant);
     else return new LoxFunction(callable, environment, isInitializer, isStatic, isConstant);
   }
@@ -70,7 +70,7 @@ public class LoxFunction implements LoxCallable{
     }
     Environment environment = new Environment(closure);
     for (int i = 0; i < declaration.params.size(); i++) {
-      environment.define(declaration.params.get(i).lexeme, arguments.get(i), false);
+      environment.define(declaration.params.get(i).lexeme, arguments.get(i), false, false);
     }
 
     try{

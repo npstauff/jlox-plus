@@ -16,8 +16,8 @@
       "name": "lox test",
       "request": "launch",
       "mainClass": "com.nix.lox.Lox",
-      "projectName": "jlox-plus_aa554b37",
-      "args": "/Users/nathaniel/Documents/Vscode/jlox-plus/test.lox"
+      "projectName": "LoxIntepreterBook_d44c1f26",
+      "args": "D:/VsCode/LoxIntepreterBook/test.lox"
     },
     {
       "type": "java",

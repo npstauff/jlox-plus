@@ -14,9 +14,11 @@ import com.nix.lox.Expr.Assign;
 import com.nix.lox.Expr.Binary;
 import com.nix.lox.Expr.Call;
 import com.nix.lox.Expr.Get;
+import com.nix.lox.Expr.GetStatic;
 import com.nix.lox.Expr.Grouping;
 import com.nix.lox.Expr.Literal;
 import com.nix.lox.Expr.Logical;
+import com.nix.lox.Expr.New;
 import com.nix.lox.Expr.Set;
 import com.nix.lox.Expr.Super;
 import com.nix.lox.Expr.This;
@@ -35,7 +37,7 @@ import com.nix.lox.Stmt.While;
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   final Environment globals = new Environment();
-  private Environment environment = globals;
+  Environment environment = globals;
   private final Map<Expr, Integer> locals = new HashMap<>();
 
   Interpreter(){
@@ -60,7 +62,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       
       @Override
       public String toString() { return "<native fun>"; };
-    }, true);
+    }, true, false);
 
     globals.define("readLine", new LoxCallable() {
 
@@ -75,7 +77,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return scanner.nextLine();
       }
       
-    }, true);
+    }, true, false);
 
     globals.define("readNum", new LoxCallable() {
 
@@ -96,7 +98,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return d;
       }
       
-    }, true);
+    }, true ,false);
 
     globals.define("readBool", new LoxCallable() {
 
@@ -117,7 +119,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return b;
       }
       
-    }, true);
+    }, true, false);
 
     globals.define("scanFile", new LoxCallable() {
 
@@ -143,7 +145,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return text;
       }
       
-    }, true);
+    }, true, false);
 
     globals.define("print", new LoxCallable() {
 
@@ -158,7 +160,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
       }
       
-    }, true);
+    }, true, false);
 
     globals.define("println", new LoxCallable() {
 
@@ -173,7 +175,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
       }
       
-    }, true);
+    }, true, false);
 
     globals.define("error", new LoxCallable() {
 
@@ -188,7 +190,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
       }
       
-    }, true);
+    }, true, false);
 
   }
 
@@ -370,7 +372,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       value = evaluate(stmt.initializer);
     }
 
-    environment.define(stmt.name.lexeme, value, stmt.isConstant);
+    environment.define(stmt.name.lexeme, value, stmt.isConstant, stmt.isStatic);
     return null;
   }
 
@@ -388,10 +390,19 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
   }
 
+  boolean functionExists(String name){
+    return environment.values.get(name) != null;
+  }
+
+  boolean globalFunctionExists(String name){
+    return environment.values.get(name) != null;
+  }
+
   @Override
   public Object visitAssignExpr(Assign expr) {
     Object right = evaluate(expr.value);
     boolean isConstant = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).constant : false;
+    boolean isStatic = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).isstatic : false;
     Integer distance = locals.get(expr);
 
     boolean hasObject = distance != null ? 
@@ -497,7 +508,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
     
     if(distance != null){
-      environment.assignAt(distance, expr.name, right, isConstant);
+      environment.assignAt(distance, expr.name, right, isConstant, isStatic);
     } else {
       globals.assign(expr.name, right);
     }
@@ -612,7 +623,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Void visitFunctionStmt(Function stmt) {
     LoxFunction function = new LoxFunction(stmt, environment, false, false, stmt.isConstant);
-    environment.define(stmt.name.lexeme, function, function.isConstant);
+    environment.define(stmt.name.lexeme, function, function.isConstant, function.isStatic);
     return null;
   }
 
@@ -638,10 +649,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
   
-    environment.define(stmt.name.lexeme, stmt.name, false);
+    environment.define(stmt.name.lexeme, stmt.name, false, false);
 
     environment = new Environment(environment);
-    environment.define("super", superclass, false);
+    environment.define("super", superclass, false, false);
     
 
 
@@ -653,7 +664,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
     for (Stmt.Var var : stmt.variables) {
       Object value = evaluate(var.initializer);
-      Field f = new Field(value, var.isConstant);
+      Field f = new Field(value, var.isConstant, var.isStatic);
       fields.put(var.name.lexeme, f);
     }
 
@@ -683,48 +694,48 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   private void defineColor() {
-    environment.define("Color", null, false);
+    environment.define("Color", null, false ,false);
 
     LoxColor c = new LoxColor(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "Color", null, -1), c);
   }
 
   private void defineMath() {
-    environment.define("Math", null, false);
+    environment.define("Math", null, false, false);
 
     LoxMath math = new LoxMath(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "Math", null, -1), math);
   }
 
    private void defineList() {
-    environment.define("List", null, false);
+    environment.define("List", null, false, false);
 
     LoxList list = new LoxList(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "List", null, -1), list);
   }
 
   private void defineMap() {
-    environment.define("Map", null, false);
+    environment.define("Map", null, false, false);
 
     LoxMap Map = new LoxMap(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "Map", null, -1), Map);
   }
 
   public void defineSystem(){
-    environment.define("System", null, false);
+    environment.define("System", null, false, false);
 
     LoxSystem system = new LoxSystem(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "System", null, -1), system);
   }
 
   public void defineObject(){
-    environment.define("Object", null, false);
+    environment.define("Object", null, false, false);
     LoxObject object = new LoxObject(environment, this, "Object", null);
     environment.assign(new Token(TokenType.CLASS, "Object", null, -1), object);
   }
 
   public void defineGraphics(){
-    environment.define("Graphics", null, false);
+    environment.define("Graphics", null, false, false);
     LoxGraphics graphics = new LoxGraphics(environment, this, null);
     environment.assign(new Token(TokenType.CLASS, "Graphics", null, -1), graphics);
   }
@@ -733,10 +744,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitGetExpr(Get expr) {
     Object object = evaluate(expr.object);
     if(object instanceof LoxInstance){
-      return ((LoxInstance)object).get(expr.name);
-    }
-    else if(object instanceof LoxClass){
-      return ((LoxClass)object).findMethod(expr.name.lexeme);
+      return ((LoxInstance)object).get(expr.name, false);
     }
 
     throw new RuntimeError(expr.name, "Only instances have properties");
@@ -746,10 +754,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitCoalesceExpr(Expr.Coalesce expr){
     Object object = evaluate(expr.object);
     if(object instanceof LoxInstance){
-      return ((LoxInstance)object).get(expr.name);
+      return ((LoxInstance)object).get(expr.name, false);
     }
     else if(object instanceof LoxClass){
-      return ((LoxClass)object).findMethod(expr.name.lexeme);
+      return ((LoxClass)object).findMethod(expr.name.lexeme, true);
     }
     else if(object == null){
       return null;
@@ -762,7 +770,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object object = evaluate(expr.object);
 
     if(!(object instanceof LoxInstance)){
-      throw new RuntimeError(expr.name, "Only instances have fields");
+      if(object instanceof LoxClass){
+        Object value = evaluate(expr.value);
+        ((LoxClass)object).set(expr.name.lexeme, value);
+        return value;
+      }
+      else{
+        throw new RuntimeError(expr.name, "Only instances have fields");
+      }
     }
 
     Object value = evaluate(expr.value);
@@ -782,7 +797,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     LoxInstance object = (LoxInstance)environment.getAt(distance-1, "this");
 
-    LoxFunction method = superclass.findMethod(expr.method.lexeme);
+    LoxFunction method = superclass.findMethod(expr.method.lexeme, false);
 
     if(method == null){
       throw new RuntimeError(expr.method,
@@ -790,5 +805,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     return method.bind(object);
+  }
+
+
+
+  @Override
+  public Object visitGetStaticExpr(GetStatic expr) {
+    Object object = evaluate(expr.object);
+    if(object instanceof LoxClass){
+      if(((LoxClass)object).findField(expr.name.lexeme, true) != null){
+        return ((LoxClass)object).findField(expr.name.lexeme, true);
+      }
+      else{
+        return ((LoxClass)object).findMethod(expr.name.lexeme, true);
+      }
+    }
+
+    throw new RuntimeError(expr.name, "Can only get public functions from a class");
+  }
+
+
+
+  @Override
+  public Object visitNewExpr(New expr) {
+    return null;
   }
 }

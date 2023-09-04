@@ -62,6 +62,6 @@ public class LoxSystem extends LoxNative{
 
   @Override
   public void defineFields() {
-    put("system", new LoxInstance(this, interpreter), true);
+    put("system", new LoxInstance(this, interpreter), true, false);
   }
 }

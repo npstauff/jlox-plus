@@ -18,11 +18,11 @@ public class Scanner {
   static{
     keywords = new HashMap<>();
     keywords.put("and",    TokenType.AND);
-    keywords.put("class",  TokenType.CLASS);
+    keywords.put("impl",  TokenType.CLASS);
     keywords.put("else",   TokenType.ELSE);
     keywords.put("false",  TokenType.FALSE);
     keywords.put("for",    TokenType.FOR);
-    keywords.put("fun",    TokenType.FUN);
+    keywords.put("func",    TokenType.FUN);
     keywords.put("if",     TokenType.IF);
     keywords.put("nil",    TokenType.NIL);
     keywords.put("or",     TokenType.OR);
@@ -30,12 +30,14 @@ public class Scanner {
     keywords.put("super",  TokenType.SUPER);
     keywords.put("this",   TokenType.THIS);
     keywords.put("true",   TokenType.TRUE);
-    keywords.put("var",    TokenType.VAR);
+    keywords.put("mut",    TokenType.VAR);
     keywords.put("while",  TokenType.WHILE);
     keywords.put("when",  TokenType.WHEN);
     keywords.put("do",  TokenType.FINALLY);
-    keywords.put("common",  TokenType.STATIC);
-    keywords.put("const",  TokenType.CONST);
+    keywords.put("public",  TokenType.STATIC);
+    keywords.put("fixed",  TokenType.CONST);
+    keywords.put("spawn",  TokenType.NEW);
+    keywords.put("new",  TokenType.NEW);
   }
 
   Scanner(String source){
@@ -116,7 +118,15 @@ public class Scanner {
         addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
         break;
       case '<':
-        addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+        if(match('=')){
+          addToken(TokenType.LESS_EQUAL);
+        }
+        else if(match('-')){
+          addToken(TokenType.ARROW);
+        }
+        else {
+          addToken(TokenType.LESS);
+        }
         break;
       case '>':
         addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
@@ -137,6 +147,11 @@ public class Scanner {
         line++;
         break;
       case '"': string(); break;
+      case ':':
+        if(match(':')){
+          addToken(TokenType.GETSTATIC);
+        }
+        break;
 
       default:
         if(isDigit(c)){

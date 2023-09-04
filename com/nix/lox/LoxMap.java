@@ -70,7 +70,7 @@ private LoxFunction keys(Environment environment) {
         for(Object o : items.keySet()){
           ArrayList<Object> objs = new ArrayList<>();
           objs.add(o);
-          list.klass.findMethod("add").call(interpreter, objs);
+          list.klass.findMethod("add",false).call(interpreter, objs);
         }
         return list;
       }
@@ -92,7 +92,7 @@ private LoxFunction values(Environment environment) {
         for(Object o : items.values()){
           ArrayList<Object> objs = new ArrayList<>();
           objs.add(o);
-          list.klass.findMethod("add").call(interpreter, objs);
+          list.klass.findMethod("add", false).call(interpreter, objs);
         }
         return list;
       }

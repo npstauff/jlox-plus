@@ -8,6 +8,7 @@ abstract class Expr {
     R visitBinaryExpr(Binary expr);
     R visitCallExpr(Call expr);
     R visitGetExpr(Get expr);
+    R visitGetStaticExpr(GetStatic expr);
     R visitCoalesceExpr(Coalesce expr);
     R visitGroupingExpr(Grouping expr);
     R visitLiteralExpr(Literal expr);
@@ -17,6 +18,7 @@ abstract class Expr {
     R visitThisExpr(This expr);
     R visitUnaryExpr(Unary expr);
     R visitVariableExpr(Variable expr);
+    R visitNewExpr(New expr);
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value, AssignType type) {
@@ -77,6 +79,20 @@ abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitGetExpr(this);
+    }
+
+    final Expr object;
+    final Token name;
+  }
+  static class GetStatic extends Expr {
+    GetStatic(Expr object, Token name) {
+      this.object = object;
+      this.name = name;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitGetStaticExpr(this);
     }
 
     final Expr object;
@@ -203,6 +219,24 @@ abstract class Expr {
     }
 
     final Token name;
+  }
+  static class New extends Expr {
+    New(Token keyword, Expr callee, Token paren, List<Expr> arguments) {
+      this.keyword = keyword;
+      this.callee = callee;
+      this.paren = paren;
+      this.arguments = arguments;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitNewExpr(this);
+    }
+
+    final Token keyword;
+    final Expr callee;
+    final Token paren;
+    final List<Expr> arguments;
   }
 
    abstract <R> R accept(Visitor<R> visitor);

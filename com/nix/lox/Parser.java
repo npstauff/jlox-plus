@@ -1,5 +1,6 @@
 package com.nix.lox;
 
+import java.lang.management.GarbageCollectorMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +14,7 @@ import static com.nix.lox.TokenType.*;
 public class Parser {
     private static class ParseError extends RuntimeException {}
 
-    private final List<Token> tokens;
+    private List<Token> tokens = new ArrayList<>();
     private int current = 0;
 
     Parser(List<Token> tokens) {
@@ -37,11 +38,19 @@ public class Parser {
             return function("const method");
           }
           else{
-            return varDeclaration(true);
+            return varDeclaration(true, false);
+          }
+        }
+        if(match(STATIC)){
+          if(match(FUN)){
+            return function("static method");
+          }
+          else{
+            return varDeclaration(false, true);
           }
         } 
         if(match(FUN)) return function("function");
-        if(match(VAR)) return varDeclaration(false);
+        if(match(VAR)) return varDeclaration(false, false);
 
         return statement();
       } catch(ParseError e){
@@ -55,7 +64,35 @@ public class Parser {
 
       Expr.Variable superclass = null;
 
+      List<Token> types = new ArrayList<>();
       if(match(LESS)){
+        
+
+        if(!check(GREATER)){
+          do{
+            if(types.size() >= 255){
+              error(peek(), "Cant have more than 255 templates");
+            }
+            Token t = consume(IDENTIFIER, "Expect template name.");
+            for (Token token : types) {
+              for (Token token2 : types) {
+                if(token.lexeme.equals(token2.lexeme)){
+                  error(t, "Cant have duplicate templates");
+                }
+              }
+            }
+            types.add(t);
+          } while (match(COMMA));
+          consume(GREATER, "Expect '>' after templates");
+
+          for (Token token : types) {
+            System.out.print(token.lexeme + " : ");
+          }
+          System.out.println();
+        }
+      }
+
+      if(match(ARROW)){
         consume(IDENTIFIER, "Expect superclass name");
         superclass = new Expr.Variable(previous());
       }
@@ -67,7 +104,17 @@ public class Parser {
       while(!check(RIGHT_BRACE) && !isAtEnd()){
         if(check(STATIC)){
           advance();
-          methods.add(function("static method"));
+          if(check(IDENTIFIER) && peekNext().type != LEFT_PAREN){
+            Token id = peek();
+            advance();
+            Token eq = consume(EQUAL, "Expected equality");
+            Expr expr = expression();
+            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            variables.add(new Stmt.Var(id, expr, false, true));
+          }
+          else{
+            methods.add(function("static method"));
+          }
         }
         else if(check(CONST)){
           advance();
@@ -77,7 +124,7 @@ public class Parser {
             Token eq = consume(EQUAL, "Expected equality");
             Expr expr = expression();
             Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, true));
+            variables.add(new Stmt.Var(id, expr, true, false));
           }
           else{
             methods.add(function("const method"));
@@ -91,7 +138,7 @@ public class Parser {
             consume(EQUAL, "Expected equality");
             Expr expr = expression();
             consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, false));
+            variables.add(new Stmt.Var(id, expr, false, false));
           }
         }
         else{
@@ -101,7 +148,7 @@ public class Parser {
 
       consume(RIGHT_BRACE, "Expect '}' after class body");
 
-      return new Stmt.Class(name, superclass, methods, variables);
+      return new Stmt.Class(name, superclass, methods, variables, types);
     }
 
     private Stmt.Function function(String kind){
@@ -125,7 +172,7 @@ public class Parser {
       return new Stmt.Function(name, parameters, body, kind.equals("static method"), kind.equals("const method"));
     }
 
-    private Stmt varDeclaration(boolean constant){
+    private Stmt varDeclaration(boolean constant, boolean isStatic){
       Token name = consume(IDENTIFIER, "Expect variable name.");
 
       Expr initializer = null;
@@ -134,7 +181,7 @@ public class Parser {
       }
 
       consume(SEMICOLON, "Expect ';' after variable declaration");
-      return new Stmt.Var(name, initializer, constant);
+      return new Stmt.Var(name, initializer, constant, isStatic);
     }
 
     private Stmt statement(){
@@ -167,7 +214,7 @@ public class Parser {
       if(match(SEMICOLON)){
         initializer = null;
       }else if(match(VAR)){
-        initializer = varDeclaration(false);
+        initializer = varDeclaration(false, false);
       } else{
         initializer = expressionStatement();
       }
@@ -301,6 +348,10 @@ public class Parser {
           Expr.Get get = ((Expr.Get)expr);
           return new Expr.Set(get.object, get.name, value);
         }
+        else if(expr instanceof Expr.GetStatic){
+          Expr.GetStatic get = ((Expr.GetStatic)expr);
+          return new Expr.Set(get.object, get.name, value);
+        }
 
         error(equals, "Invalid assignment target");
       }
@@ -373,6 +424,11 @@ public class Parser {
       return tokens.get(current);
     }
 
+    private Token peekNext(){
+      if(current + 1 >= tokens.size()) return tokens.get(current);
+      return tokens.get(current + 1);
+    }
+
     private Token previous(){
       return tokens.get(current-1);
     }
@@ -440,6 +496,10 @@ public class Parser {
         } else if(match(DOT)){
           Token name = consume(IDENTIFIER, "Expect property name after '.'.");
           expr = new Expr.Get(expr, name);
+        }
+        else if(match(GETSTATIC)){
+          Token name = consume(IDENTIFIER, "Expect function name after '::'.");
+          expr = new Expr.GetStatic(expr, name);
         } 
         else {
           break;
@@ -496,6 +556,10 @@ public class Parser {
       }
       if(isSpecialAssign(previous().type)){
         return new Expr.Literal(0);
+      }
+
+      if(match(NEW)){
+        return call();
       }
 
       throw error(peek(), "Expect expression");

@@ -14,12 +14,12 @@ public class LoxInstance {
     this.interpreter = interpreter;
   }
 
-  Object get(Token name){
-    if(klass.findField(name.lexeme) != null){
-      return klass.findField(name.lexeme);
+  Object get(Token name, boolean staticGet){
+    if(klass.findField(name.lexeme, staticGet) != null){
+      return klass.findField(name.lexeme, staticGet);
     }
 
-    LoxFunction method = klass.findMethod(name.lexeme);
+    LoxFunction method = klass.findMethod(name.lexeme, staticGet);
     if(method != null) return method.bind(this);
 
     throw new RuntimeError(name, "Undefined property " + name.lexeme);
@@ -38,6 +38,6 @@ public class LoxInstance {
 
   @Override
   public String toString() {
-    return (String)klass.findMethod("toString").call(interpreter, new ArrayList<>());
+    return (String)klass.findMethod("toString", false).call(interpreter, new ArrayList<>());
   }
 }

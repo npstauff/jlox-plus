@@ -7,6 +7,8 @@ import java.util.Stack;
 
 import com.nix.lox.Expr.Coalesce;
 import com.nix.lox.Expr.Get;
+import com.nix.lox.Expr.GetStatic;
+import com.nix.lox.Expr.New;
 import com.nix.lox.Expr.Set;
 import com.nix.lox.Expr.Super;
 import com.nix.lox.Expr.This;
@@ -304,6 +306,18 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
           "Can't use 'super' in a class with no superclass.");
     }
     
+    resolveLocal(expr, expr.keyword);
+    return null;
+  }
+
+  @Override
+  public Void visitGetStaticExpr(GetStatic expr) {
+    resolve(expr.object);
+    return null;
+  }
+
+  @Override
+  public Void visitNewExpr(New expr) {
     resolveLocal(expr, expr.keyword);
     return null;
   }

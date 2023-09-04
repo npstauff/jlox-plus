@@ -16,7 +16,7 @@ public class LoxObject extends LoxNative{
     Map<String, LoxFunction> methods = new HashMap<>();
     methods.put("init", init(environment));
     methods.put("toString", toString(environment));
-    methods.put("typeof", typeof(environment));
+    //methods.put("typeof", typeof(environment));
     methods.put("fields", fields(environment));
     return methods;
   }
@@ -36,7 +36,7 @@ public class LoxObject extends LoxNative{
           ArrayList<Object> args = new ArrayList<>();
           args.add(s);
           args.add(type.fields.get(s).value);
-          map.klass.findMethod("put").call(interpreter, args);
+          map.klass.findMethod("put", false).call(interpreter, args);
         }
         return map;
       }
@@ -45,7 +45,7 @@ public class LoxObject extends LoxNative{
   }
 
   public void defineFields(){
-    put("name", "Object$"+this.type, false);
+    put("name", "Object$"+this.type, false, false);
   }
 
   private LoxFunction init(Environment environment){
@@ -75,7 +75,7 @@ public class LoxObject extends LoxNative{
         @Override
         public Object call(Interpreter interpreter, List<Object> arguments) {
             if(type.methods.containsKey("toString") && !type.name.equals("Object")){
-              return type.findMethod("toString").call(interpreter, new ArrayList<>());
+              return type.findMethod("toString", false).call(interpreter, new ArrayList<>());
             }
             else{
               return defaultToString();

@@ -23,10 +23,27 @@ public class LoxList extends LoxNative{
     methods.put("length", length(environment));
     methods.put("first", first(environment));
     methods.put("last", last(environment));
+    methods.put("contains", contains(environment));
     return methods;
   }
 
- private LoxFunction get(Environment environment) {
+ private LoxFunction contains(Environment environment) {
+    return new LoxFunction(new LoxCallable() {
+
+      @Override
+      public int arity() {
+        return 1;
+      }
+
+      @Override
+      public Object call(Interpreter interpreter, List<Object> arguments) {
+        return items.contains(arguments.get(0));
+      }
+      
+    }, environment, false);
+  }
+
+private LoxFunction get(Environment environment) {
     return new LoxFunction(new LoxCallable() {
 
       @Override

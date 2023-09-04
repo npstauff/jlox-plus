@@ -17,6 +17,9 @@ public class Environment {
 
   Object get(Token name){
     if(values.containsKey(name.lexeme)){
+      if(values.get(name.lexeme).isstatic){
+        System.out.println("[WARNING] Accessing static context '" + name.lexeme + "' in global scope in not recommended");
+      }
       return values.get(name.lexeme).value;
     }
 
@@ -25,8 +28,8 @@ public class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void define(String name, Object value, boolean constant){
-    put(name, new Field(value, constant));
+  void define(String name, Object value, boolean constant, boolean stat){
+    put(name, new Field(value, constant, stat));
   }
 
   Object getAt(int distance, String name){
@@ -34,8 +37,8 @@ public class Environment {
     return value != null ? value.value : null;
   }
 
-  void assignAt(int distance, Token name, Object value, boolean isConstant){
-    ancestor(distance).put(name.lexeme, new Field(value, isConstant));
+  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat){
+    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat));
   }
 
   Environment ancestor(int distance){
@@ -66,7 +69,8 @@ public class Environment {
     boolean isConstant = false;
     if (values.containsKey(name.lexeme)) {
       isConstant = values.get(name.lexeme).constant;
-      put(name.lexeme, new Field(value, isConstant));
+      boolean stat = values.get(name.lexeme).isstatic;
+      put(name.lexeme, new Field(value, isConstant, stat));
       return;
     }
 

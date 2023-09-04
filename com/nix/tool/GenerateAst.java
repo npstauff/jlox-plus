@@ -15,6 +15,7 @@ public class GenerateAst {
         "Binary   : Expr left, Token operator, Expr right",
         "Call     : Expr callee, Token paren, List<Expr> arguments, boolean nullCheck",
         "Get      : Expr object, Token name",
+        "GetStatic: Expr object, Token name",
         "Coalesce      : Expr object, Token name",
         "Grouping : Expr expression",
         "Literal  : Object value",
@@ -23,13 +24,14 @@ public class GenerateAst {
         "Super    : Token keyword, Token method",
         "This     : Token keyword",
         "Unary    : Token operator, Expr right",
-        "Variable : Token name"
+        "Variable : Token name",
+        "New      : Token keyword, Expr callee, Token paren, List<Expr> arguments"
       ));
 
       defineAst(ouputDir, "Stmt", Arrays.asList(
         "Block      : List<Stmt> statements",
         "Class      : Token name, Expr.Variable superclass," +
-                  " List<Stmt.Function> methods, List<Stmt.Var> variables",
+                  " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates",
         "Expression : Expr expression",
         "Function   : Token name, List<Token> params," +
                   " List<Stmt> body, boolean isStatic, boolean isConstant",
@@ -37,7 +39,7 @@ public class GenerateAst {
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",
         "Return     : Token keyword, Expr value",
-        "Var        : Token name, Expr initializer, boolean isConstant",
+        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic",
         "While      : Expr condition, Stmt body"
       ));
     } catch (IOException e) {

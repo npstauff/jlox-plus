@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 import javax.swing.*;
 
 class Rect{
@@ -19,11 +22,13 @@ class Rect{
   }
 }
 
-public class LoxGraphics extends LoxNative{
+public class LoxGraphics extends LoxNative implements ActionListener{
 
   JFrame frame = null;
   JPanel panel = new JPanel();
   Graphics2D graphics = null;
+  Timer t = null;
+  boolean startMethodCalled = false;
 
   ArrayList<Rect> rects = new ArrayList<Rect>();
 
@@ -106,14 +111,16 @@ public class LoxGraphics extends LoxNative{
   }
 
   Color getColor(LoxInstance instance){
-    double r = (double)instance.klass.findField("r");
-    double g = (double)instance.klass.findField("g");
-    double b = (double)instance.klass.findField("b");
-    double a = (double)instance.klass.findField("a");
+    double r = (double)instance.klass.findField("r", false);
+    double g = (double)instance.klass.findField("g", false);
+    double b = (double)instance.klass.findField("b", false);
+    double a = (double)instance.klass.findField("a", false);
     return new Color((int)r, (int)g, (int)b, (int)a);
   }
 
   public LoxFunction init(Environment environment){
+    t = new Timer(10, this);
+    t.start();
     return new LoxFunction(new LoxCallable() {
 
       @Override
@@ -133,10 +140,8 @@ public class LoxGraphics extends LoxNative{
         panel.setPreferredSize(new Dimension(width, height));
         frame.pack();
         frame.setLocationRelativeTo(null);
-        
 
         updateDimensions();
-
         return null;
       }
       
@@ -150,8 +155,18 @@ public class LoxGraphics extends LoxNative{
 
   public void updateDimensions(){
     if(frame != null){
-      put("width", (double)frame.getWidth(), false);
-      put("height", (double)frame.getHeight(), false);
+      put("width", (double)frame.getWidth(), false, false);
+      put("height", (double)frame.getHeight(), false, false);
+    }
+  }
+
+  @Override
+  public void actionPerformed(ActionEvent e) {
+    if(interpreter.environment.values.get("update") != null){
+      Object update = interpreter.environment.values.get("update").value;
+      if(update instanceof LoxCallable){
+        ((LoxCallable)update).call(interpreter, new ArrayList<>());
+      }
     }
   }
   

@@ -27,11 +27,12 @@ abstract class Stmt {
     final List<Stmt> statements;
   }
   static class Class extends Stmt {
-    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables) {
+    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates) {
       this.name = name;
       this.superclass = superclass;
       this.methods = methods;
       this.variables = variables;
+      this.templates = templates;
     }
 
     @Override
@@ -43,6 +44,7 @@ abstract class Stmt {
     final Expr.Variable superclass;
     final List<Stmt.Function> methods;
     final List<Stmt.Var> variables;
+    final List<Token> templates;
   }
   static class Expression extends Stmt {
     Expression(Expr expression) {
@@ -123,10 +125,11 @@ abstract class Stmt {
     final Expr value;
   }
   static class Var extends Stmt {
-    Var(Token name, Expr initializer, boolean isConstant) {
+    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic) {
       this.name = name;
       this.initializer = initializer;
       this.isConstant = isConstant;
+      this.isStatic = isStatic;
     }
 
     @Override
@@ -137,6 +140,7 @@ abstract class Stmt {
     final Token name;
     final Expr initializer;
     final boolean isConstant;
+    final boolean isStatic;
   }
   static class While extends Stmt {
     While(Expr condition, Stmt body) {
