@@ -39,11 +39,11 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 
 Variables
 ---
-Variables in lox are dynamic, and can be assigned as either constant or variable
+Variables in lox are dynamic, and can be assigned as either fixed, variable, or shared
 
 ```js
 var x = 5;
-const x = 5;
+fixed x = 5;
 ```
 Assigning variables works as expected, with added support for postfix increments and decrements
 ```js
@@ -61,9 +61,9 @@ var x = 5;
 x ** 2;
 //Result: 25
 ```
-Constants work the same, except that they can't be reassigned
+fixeds work the same, except that they can't be reassigned
 ```js
-const x = 5;
+fixed x = 5;
 x = 6;
 //Will throw error
 ```
@@ -93,27 +93,27 @@ for(var i = 0; i < 10; i++){
 ```
 Functions
 ---
-Functions are defined with the `fun` keyword and can have local constants and variables
+Functions are defined with the `fun` keyword and can have local fixeds and variables
 ```kotlin
 fun helloWorld(message){
   println("Hello, " + message);
 }
 ```
-Functions can be marked constant, which makes them unable to be reassigned
+Functions can be marked fixed, which makes them unable to be reassigned
 ```kotlin
-const fun helloWorld(message){
+fixed fun helloWorld(message){
   println("Hello, " + message);
 }
 ```
 Classes
 ---
 jlox+ is an object oriented language that supports classes and single-inheritance.
-constructers are defined by making an `init()` method.
+fixedructers are defined by making an `init()` method.
 instances are created by calling the class like a function and passing the parameters for its `init()` method.
 ```js
 class Program{
   var x = 0;
-  const y = 0;
+  fixed y = 0;
   
   init(){
     //do something
@@ -134,7 +134,23 @@ Variables in classes must be initialized immediatly. Fields can be added on the 
 # Jlox+ features
 Variables
 ---
-Constants, postfix increments and decrements. Variables declared in a class.
+fixed objects, postfix increments and decrements. Variables declared in a class, can be fixed and shared.
+
+Calling `shared` methods/variables
+---
+To call a shared method or variable, use the `scope resolution operator`
+```c++
+object TestObj {
+  shared mut x = 10;
+  shared method testMethod () {}
+}
+
+TestObj::x; //10
+TestObject::testMethod();
+
+Math::floor(TestObject::x);
+System::println(TestObject::x);
+```
 
 Control Flow
 ---
@@ -151,24 +167,24 @@ when(x > 5){
 
 Functions
 ---
-Constant functions
+fixed functions
 ```kotlin
-const fun test() {}
+fixed fun test() {}
 fun two() {}
 test = two; //not allowed
 ```
 
 Classes
 ---
-functions in classes can be marked `common` which works like `static` in languages such as java or C
+functions in classes can be marked `shared` which works like `static` in languages such as java or C
 ```js
 class Test{
-  common sayHi(){
+  shared method sayHi(){
     println("hi");
   }
 }
 
-Test.sayHi();
+Test::sayHi();
 ```
 
 Built-in types
@@ -177,14 +193,14 @@ Jlox+ defines a number of built in types to use
 
 **System**
 
-for now, the system class only defines a `common` method `random(lower, upper)` but more is planned for the future
+for now, the system class only defines a `shared` method `random(lower, upper)` but more is planned for the future
 ```java
 System.random(0, 100);
 ```
 
 **Math**
 
-the math class contains a few `common` functions for doing math
+the math class contains a few `shared` functions for doing math
 ```js
 Math.round(a);
 Math.floor(a);
@@ -313,11 +329,11 @@ error(expression);
 - [ ] Ternary operators
 - [ ] String functions
 - [ ] operator overloading
-- [ ] extension methods
-- [ ] prefix increment/decrement
-- [ ] break from loops
+- [x] extension methods
+- [x] prefix increment/decrement
+- [x] break from loops
 - [ ] continue in loops
-- [ ] packages
-- [ ] multi-file import
+- [x] packages
+- [x] multi-file import
 
 **Not all of these will neccessary be implemented they are just things I want to do**
