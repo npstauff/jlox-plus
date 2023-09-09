@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.swing.text.html.parser.Element;
+
 import sun.misc.Unsafe;
 
 import com.nix.lox.Expr.Assign;
@@ -28,13 +31,17 @@ import com.nix.lox.Expr.Unary;
 import com.nix.lox.Expr.Variable;
 import com.nix.lox.Expr.Visitor;
 import com.nix.lox.Stmt.Block;
+import com.nix.lox.Stmt.Break;
+import com.nix.lox.Stmt.Case;
 import com.nix.lox.Stmt.Class;
 import com.nix.lox.Stmt.Expect;
 import com.nix.lox.Stmt.Expression;
 import com.nix.lox.Stmt.Function;
 import com.nix.lox.Stmt.GetFile;
 import com.nix.lox.Stmt.If;
+import com.nix.lox.Stmt.Interface;
 import com.nix.lox.Stmt.Return;
+import com.nix.lox.Stmt.Switch;
 import com.nix.lox.Stmt.Var;
 import com.nix.lox.Stmt.While;
 
@@ -52,80 +59,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   
 
   private void defineNativeFunctions(){
-    globals.define("clock", new LoxCallable() {
+    
 
-      @Override
-      public int arity() {
-        return 0;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        return (double)System.currentTimeMillis()/1000.0;
-      }
-      
-      @Override
-      public String toString() { return "<native fun>"; };
-    }, true, false, false);
-
-    globals.define("readLine", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 0;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        java.util.Scanner scanner = new java.util.Scanner(System.in);
-        return scanner.nextLine();
-      }
-      
-    }, true, false, false);
-
-    globals.define("readNum", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 0;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        java.util.Scanner scanner = new java.util.Scanner(System.in);
-        double d = 0;
-        try{
-          d = scanner.nextDouble();
-        } catch (Exception e){
-          throw new RuntimeError(new Token(TokenType.NUMBER, ((Object)d).toString(), d, -1), "input format error, expected type NUMBER");
-        }
-        return d;
-      }
-      
-    }, true ,false, false);
-
-    globals.define("readBool", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 0;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        java.util.Scanner scanner = new java.util.Scanner(System.in);
-        boolean b = false;
-        try{
-          b = scanner.nextBoolean();
-        } catch (Exception e){
-          throw new RuntimeError(new Token(TokenType.OBJECT, ((Object)b).toString(), b, -1), "input format error, expected type BOOLEAN");
-        }
-        return b;
-      }
-      
-    }, true, false, false);
-
-    globals.define("scanFile", new LoxCallable() {
+    globals.define("throw", new LoxCallable() {
 
       @Override
       public int arity() {
@@ -134,64 +70,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
       @Override
       public Object call(Interpreter interpreter, List<Object> arguments) {
-        String text = "";
-        String path = (String)arguments.get(0);
-        try {
-          File f = new File(path);
-          java.util.Scanner reader = new java.util.Scanner(f);
-          while(reader.hasNextLine()){
-            text += reader.nextLine()+"\n";
-          }
-        } catch (FileNotFoundException e) {
-          throw new RuntimeError(new Token(TokenType.OBJECT, "", path, -1), "file at location " + path + " not found");
-        }
-        
-        return text;
-      }
-      
-    }, true, false, false);
-
-    globals.define("print", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 1;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        System.out.print(arguments.get(0));
-        return null;
-      }
-      
-    }, true, false, false);
-
-    globals.define("println", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 1;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        System.out.println(arguments.get(0));
-        return null;
-      }
-      
-    }, true, false, false);
-
-    globals.define("error", new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 1;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        System.err.println(arguments.get(0));
-        return null;
+        throw new RuntimeError(new Token(TokenType.EOF, "err", null, -1), "["+"ERROR THROWN"+"] "+arguments.get(0).toString());
       }
       
     }, true, false, false);
@@ -576,10 +455,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
     catch (com.nix.lox.Expect exVal){
         if((Boolean)exVal.value){
-          System.out.println("Test " + name + " passed");
+          System.out.println("Test '" + name + "' passed");
         }
         else{
-          System.out.println("Test " + name + " failed");
+          System.out.println("Test '" + name + "' failed");
         }
         return null;
     }
@@ -602,7 +481,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Void visitWhileStmt(While stmt) {
     while(isTruthy(evaluate(stmt.condition))){
-      execute(stmt.body);
+      try{
+        execute(stmt.body);
+      }
+      catch (com.nix.lox.Break b){
+        break;
+      }
     }
 
     return null;
@@ -704,7 +588,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Map<String, LoxFunction> methods = new HashMap<>();
     Map<String, Field> fields = new HashMap<>();
     for(Stmt.Function method : stmt.methods) {
+      if(!method.hasBody){
+        FunctionTemplate func = findFunctionOnInterfaces(stmt.interfase, method.name.lexeme);
+        if(func != null){
+          if(!func.hasBody){
+            throw new RuntimeError(stmt.name, "Can't call abstract method '"+func.name.lexeme+"' from object '"+stmt.name.lexeme+"' because the matching interface function does not declare a body");
+          }
+          if(func.isConstant != method.isConstant){
+            throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
+          }
+          if(func.isStatic != method.isStatic){
+            throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
+          }
+          if(func.params.size() != method.params.size()){
+            throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
+          }
+          method.body = func.body;
+        }
+        else{
+          throw new RuntimeError(stmt.name, "Can't call abstract method '"+method.name.lexeme+"' from object '"+stmt.name.lexeme+"' because there no matching interface functions");
+        }
+      }
       LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant);
+      function.global = false;
       methods.put(method.name.lexeme, function);
     }
     for (Stmt.Var var : stmt.variables) {
@@ -712,6 +618,58 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       Field f = new Field(value, var.isConstant, var.isStatic, var.pointer);
       fields.put(var.name.lexeme, f);
     }
+
+    if(stmt.interfase != null) {
+      for(Token interfaseToken : stmt.interfase) {
+        Object interfaseValue = null;
+        if(stmt.interfase != null){
+          interfaseValue = environment.get(interfaseToken);
+        } 
+        LoxInterface inter = null;
+        if(interfaseValue != null){
+          if(interfaseValue instanceof LoxInterface) {
+            inter = (LoxInterface)interfaseValue;
+          }
+        }
+
+        if(inter != null){
+          for(FunctionTemplate name : inter.methods.values()){
+            if(!methods.containsKey(name.name.lexeme)){
+              throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must implement all methods of interface '"+inter.name+"', method: '"+name.name.lexeme+"'");
+            }
+            else{
+              LoxFunction function = methods.get(name.name.lexeme);
+              if(function.isStatic != name.isStatic){
+                throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+inter.name+"', method: '"+name.name.lexeme+"'");
+              }
+              if(function.isConstant != name.isConstant){
+                throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+inter.name+"', method: '"+name.name.lexeme+"'");
+              }
+              //params
+              if(function.arity() != name.params.size()){
+                throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+inter.name+"', method: '"+name.name.lexeme+"'");
+              }
+            }
+          }
+          for(VarTemplate name : inter.fields.values()){
+            if(!fields.containsKey(name.name.lexeme)){
+              throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must implement all fields of interface '"+inter.name+"', field: '"+name.name.lexeme+"'");
+            }
+            else{
+              Field field = fields.get(name.name.lexeme);
+              if(field.isstatic != name.isStatic){
+                throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the field signature of interface '"+inter.name+"', field: '"+name.name.lexeme+"'");
+              }
+              if(field.constant != name.isConstant){
+                throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the field signature of interface '"+inter.name+"', field: '"+name.name.lexeme+"'");
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    
 
     LoxClass klass = new LoxClass(stmt.name.lexeme, (LoxClass)superclass, methods, fields, this);
 
@@ -725,6 +683,101 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     environment.assign(stmt.name, klass);
+    return null;
+  }
+
+  public FunctionTemplate findFunctionOnInterfaces(List<Token> interfaces, String name){
+    for(Token interfaseToken : interfaces) {
+      Object interfaseValue = null;
+      if(interfaces != null){
+        interfaseValue = environment.get(interfaseToken);
+      } 
+      LoxInterface inter = null;
+      if(interfaseValue != null){
+        if(interfaseValue instanceof LoxInterface) {
+          inter = (LoxInterface)interfaseValue;
+        }
+      }
+
+      if(inter != null){
+        for(FunctionTemplate func : inter.methods.values()){
+          if(func.name.lexeme.equals(name)){
+            return func;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitInterfaceStmt(Stmt.Interface inter){
+    environment.define(inter.name.lexeme, inter.name, false, false, false);
+
+    environment = new Environment(environment);
+
+    Map<String, FunctionTemplate> methods = new HashMap<>();
+    Map<String, VarTemplate> fields = new HashMap<>();
+    for(FunctionTemplate method : inter.methods) {
+      methods.put(method.name.lexeme, method);
+      //System.out.println("Interface: " + inter.name.lexeme + ", Method: " + method.name.lexeme + ", isStatic: " + method.isStatic + ", isConstant: " + method.isConstant);
+    }
+    for (VarTemplate var : inter.variables) {
+      fields.put(var.name.lexeme, var);
+      //System.out.println("Interface: " + inter.name.lexeme + ", Var: " + var.name.lexeme + ", isStatic: " + var.isStatic + ", isConstant: " + var.isConstant);
+    }
+
+    LoxInterface i = new LoxInterface(inter.name.lexeme, methods, fields);
+
+    if(environment.enclosing != null){
+      environment = environment.enclosing;
+    }
+
+    environment.assign(inter.name, i);
+
+    return null;
+  }
+
+  @Override
+  public Void visitEnumStmt(Stmt.Enum stmt){
+    environment.define(stmt.name.lexeme, stmt.name, false, false, false);
+
+    environment = new Environment(environment);
+
+    Map<Token, LoxEnum.Element> elements = new HashMap<>();
+
+    for(LoxEnum.Element e : stmt.elements) {
+      elements.put(e.name, e);
+    }
+
+    LoxEnum i = new LoxEnum(stmt.name, elements);
+
+    if(environment.enclosing != null){
+      environment = environment.enclosing;
+    }
+
+    environment.assign(stmt.name, i);
+
+    return null;
+  }
+
+  @Override
+  public Void visitSwitchStmt(Switch stmt) {
+    Object value = evaluate(stmt.value);
+    for(int i = 0; i < stmt.cases.size(); i++){
+      Stmt.Case c = stmt.cases.get(i);
+      if(isEqual(value, evaluate(c.value))){
+        execute(c.body);
+        break;
+      }
+      else{
+        if(i == stmt.cases.size()-1){
+          if(stmt.defaultCase != null){
+            execute(stmt.defaultCase.body);
+          }
+        }
+      }
+    }
     return null;
   }
 
@@ -865,8 +918,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return ((LoxClass)object).findMethod(expr.name.lexeme, true);
       }
     }
+    else if(object instanceof LoxEnum) {
+      return ((LoxEnum)object).getValue(expr.name);
+    }
 
-    throw new RuntimeError(expr.name, "Can only get public functions from a class");
+    throw new RuntimeError(expr.name, "Can only get public functions from a class or enum");
   }
 
 
@@ -889,12 +945,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Void visitBreakStmt(Break stmt) {
+    throw new com.nix.lox.Break();
+  }
+
+  @Override
+  public Void visitContinueStmt(Stmt.Continue stmt) {
+    throw new com.nix.lox.Continue();
+  }
+
+  @Override
   public Void visitModuleStmt(Stmt.Module stmt) {
     return null;
   }
 
   @Override
   public Void visitGetFileStmt(GetFile stmt) {
+    return null;
+  }
+
+
+
+  @Override
+  public Void visitCaseStmt(Case stmt) {
     return null;
   }
 

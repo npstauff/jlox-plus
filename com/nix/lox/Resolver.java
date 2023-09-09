@@ -14,6 +14,7 @@ import com.nix.lox.Expr.Super;
 import com.nix.lox.Expr.This;
 import com.nix.lox.Stmt.Class;
 import com.nix.lox.Stmt.GetFile;
+import com.nix.lox.Stmt.Interface;
 import com.nix.lox.Stmt.Module;
 import com.nix.lox.Stmt.When;
 
@@ -78,7 +79,7 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
       declare(param);
       define(param);
     }
-    resolve(function.body);
+    if(function.hasBody) resolve(function.body);
     endScope();
     currentFunction = enclosingFunction;
   }
@@ -148,6 +149,16 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
       resolve(stmt.value);
     }
 
+    return null;
+  }
+
+  @Override
+  public Void visitBreakStmt(Stmt.Break stmt) {
+    return null;
+  }
+
+  @Override
+  public Void visitContinueStmt(Stmt.Continue stmt) {
     return null;
   }
 
@@ -280,7 +291,7 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
 
     for(Stmt.Function method : stmt.methods) {
       FunctionType declaration = FunctionType.METHOD;
-      if (method.name.lexeme.equals("init")) {
+      if (method.name.lexeme.equals("constructor")) {
         declaration = FunctionType.INITIALIZER;
       }
       resolveFunction(method, declaration);
@@ -292,6 +303,54 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
 
     currentClass = enclosingClass;
     return null;
+  }
+
+  @Override
+  public Void visitInterfaceStmt(Interface stmt) {
+    
+    declare(stmt.name);
+    define(stmt.name);
+
+    beginScope();
+    for(FunctionTemplate func : stmt.methods){
+      resolveFuncTemplate(func);
+    }
+    endScope();
+
+    return null;
+  }
+
+  @Override
+  public Void visitEnumStmt(Stmt.Enum stmt) {
+    declare(stmt.name);
+    define(stmt.name);
+
+    return null;
+  }
+
+  @Override
+  public Void visitSwitchStmt(Stmt.Switch stmt) {
+    resolve(stmt.value);
+    for(Stmt.Case c : stmt.cases){
+      resolve(c);
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitCaseStmt(Stmt.Case stmt) {
+    if(stmt.value != null) resolve(stmt.value);
+    resolve(stmt.body);
+    return null;
+  }
+
+  private void resolveFuncTemplate(FunctionTemplate template) {
+    beginScope();
+    for(Token param : template.params){
+      declare(param);
+      define(param);
+    }
+    endScope();
   }
 
   @Override
@@ -359,5 +418,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     return null;
   }
 
+  
   
 }

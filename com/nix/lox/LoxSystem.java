@@ -1,5 +1,6 @@
 package com.nix.lox;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ public class LoxSystem extends LoxNative{
     methods.put("errln", debug(environment, true, true));
     methods.put("err", debug(environment, false, true));
     methods.put("random", random(environment));
+    methods.put("writeToFile", write(environment));
     return methods;
   }
 
@@ -61,6 +63,34 @@ public class LoxSystem extends LoxNative{
       public Object call(Interpreter interpreter, List<Object> arguments) {
         if(!err) System.out.print(arguments.get(0) + (newline ? "\n" : ""));
         else System.err.print(arguments.get(0) + (newline ? "\n" : ""));
+        return null;
+      }
+      
+    }, environment, false, true);
+  }
+
+  LoxFunction write(Environment environment) {
+    return new LoxFunction(new LoxCallable() {
+
+      @Override
+      public int arity() {
+        return 3;
+      }
+
+      @Override
+      public Object call(Interpreter interpreter, List<Object> arguments) {
+        String filepath = (String)arguments.get(0);
+        String format = (String)arguments.get(2);
+        try{
+          java.io.FileWriter writer = new java.io.FileWriter(filepath);
+          if(format.equals("a")) writer.append((String)arguments.get(1));
+          else if(format.equals("w")) writer.write((String)arguments.get(1));
+          else {writer.close(); throw new RuntimeError(new Token(TokenType.IDENTIFIER, "write", null, 1), "Invalid write format: '" + format + "'");};
+          writer.close();
+        }
+        catch(IOException e){
+          System.err.println("Error writing to file: " + filepath);
+        }
         return null;
       }
       

@@ -1,5 +1,9 @@
-import "test2.lox";
-import "test3.lox";
+interface ITest {
+    method itest();
+}
 
-System::println(x);
-System::println(y);
+object Test -> ITest {
+    method itest() {}
+}
+
+new Test().itest();

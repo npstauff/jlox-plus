@@ -17,6 +17,12 @@ abstract class Stmt {
     R visitTestStmt(Test stmt);
     R visitGetFileStmt(GetFile stmt);
     R visitModuleStmt(Module stmt);
+    R visitInterfaceStmt(Interface stmt);
+    R visitEnumStmt(Enum stmt);
+    R visitSwitchStmt(Switch stmt);
+    R visitCaseStmt(Case stmt);
+    R visitBreakStmt(Break stmt);
+    R visitContinueStmt(Continue stmt);
   }
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
@@ -31,12 +37,13 @@ abstract class Stmt {
     final List<Stmt> statements;
   }
   static class Class extends Stmt {
-    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates) {
+    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase) {
       this.name = name;
       this.superclass = superclass;
       this.methods = methods;
       this.variables = variables;
       this.templates = templates;
+      this.interfase = interfase;
     }
 
     @Override
@@ -49,6 +56,7 @@ abstract class Stmt {
     final List<Stmt.Function> methods;
     final List<Stmt.Var> variables;
     final List<Token> templates;
+    final List<Token> interfase;
   }
   static class Expression extends Stmt {
     Expression(Expr expression) {
@@ -63,13 +71,14 @@ abstract class Stmt {
     final Expr expression;
   }
   static class Function extends Stmt {
-    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant) {
+    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody) {
       this.name = name;
       this.extClass = extClass;
       this.params = params;
       this.body = body;
       this.isStatic = isStatic;
       this.isConstant = isConstant;
+      this.hasBody = hasBody;
     }
 
     @Override
@@ -80,9 +89,10 @@ abstract class Stmt {
     final Token name;
     final Token extClass;
     final List<Token> params;
-    final List<Stmt> body;
+    List<Stmt> body;
     final boolean isStatic;
     final boolean isConstant;
+    final Boolean hasBody;
   }
   static class If extends Stmt {
     If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
@@ -214,6 +224,90 @@ abstract class Stmt {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitModuleStmt(this);
+    }
+
+    final Token keyword;
+  }
+  static class Interface extends Stmt {
+    Interface(Token name, List<FunctionTemplate> methods, List<VarTemplate> variables) {
+      this.name = name;
+      this.methods = methods;
+      this.variables = variables;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitInterfaceStmt(this);
+    }
+
+    final Token name;
+    final List<FunctionTemplate> methods;
+    final List<VarTemplate> variables;
+  }
+  static class Enum extends Stmt {
+    Enum(Token name, List<LoxEnum.Element> elements) {
+      this.name = name;
+      this.elements = elements;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitEnumStmt(this);
+    }
+
+    final Token name;
+    final List<LoxEnum.Element> elements;
+  }
+  static class Switch extends Stmt {
+    Switch(Expr value, List<Stmt.Case> cases, Stmt.Case defaultCase) {
+      this.value = value;
+      this.cases = cases;
+      this.defaultCase = defaultCase;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitSwitchStmt(this);
+    }
+
+    final Expr value;
+    final List<Stmt.Case> cases;
+    final Stmt.Case defaultCase;
+  }
+  static class Case extends Stmt {
+    Case(Expr value, Stmt body) {
+      this.value = value;
+      this.body = body;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitCaseStmt(this);
+    }
+
+    final Expr value;
+    final Stmt body;
+  }
+  static class Break extends Stmt {
+    Break(Token keyword) {
+      this.keyword = keyword;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitBreakStmt(this);
+    }
+
+    final Token keyword;
+  }
+  static class Continue extends Stmt {
+    Continue(Token keyword) {
+      this.keyword = keyword;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitContinueStmt(this);
     }
 
     final Token keyword;

@@ -41,6 +41,8 @@ public class Parser {
     private Stmt declaration(){
       try{
         if(match(CLASS)) return classDeclaration();
+        if(match(INTERFACE)) return interfaceDeclaration();
+        if(match(ENUM)) return enumDeclaration();
         if(match(CONST)){
           if(match(FUN)){
             return function("const method");
@@ -71,12 +73,20 @@ public class Parser {
       Token name = consume(IDENTIFIER, "Expect class name");
 
       Expr.Variable superclass = null;
+      List<Token> interfase = null;
 
       List<Token> types = new ArrayList<>();
 
-      if(match(ARROW)){
+      if(match(INARROW)){
         consume(IDENTIFIER, "Expect superclass name");
         superclass = new Expr.Variable(previous());
+      }
+
+      if(match(OUTARROW)) {
+        interfase = new ArrayList<>();
+        do{
+          interfase.add(consume(IDENTIFIER, "Expect interface name"));
+        } while(match(COMMA));
       }
 
       consume(LEFT_BRACE, "Expect '{' before class body");
@@ -150,7 +160,166 @@ public class Parser {
 
       consume(RIGHT_BRACE, "Expect '}' after class body");
 
-      return new Stmt.Class(name, superclass, methods, variables, types);
+      return new Stmt.Class(name, superclass, methods, variables, types, interfase);
+    }
+
+    public Stmt.Interface interfaceDeclaration() {
+      Token name = consume(IDENTIFIER, "Expect interface name"); 
+      consume(LEFT_BRACE, "Expect '{' before interface body");
+
+      List<FunctionTemplate> methods = new ArrayList<>();
+      List<VarTemplate> variables = new ArrayList<>();
+      while(!check(RIGHT_BRACE) && !isAtEnd()){
+        if(check(STATIC)){
+          advance();
+          if(check(VAR)){
+            advance();
+            Token id = peek();
+            advance();
+            boolean ptr = false;
+            if(check(PTR)){
+              ptr = true;
+              advance();
+            }
+            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            variables.add(new VarTemplate(id, true, false));
+          }
+          else if(check(METHOD)){
+            advance();
+            methods.add(funcTemplate("static"));
+          }
+          else{
+            error(peek(), "Expected static method or variable");
+          }
+        }
+        else if(check(CONST)){
+          advance();
+          if(check(IDENTIFIER)){
+            Token id = peek();
+            advance();
+            boolean ptr = false;
+            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            variables.add(new VarTemplate(id, false, true));
+          }
+          else if (match(METHOD)){
+            methods.add(funcTemplate("const"));
+          }
+          else{
+            error(peek(), "Expected const method or variable");
+          }
+        }
+        else if(check(VAR)){
+          advance();
+          if(check(IDENTIFIER)){
+            Token id = peek();
+            advance();
+            boolean ptr = false;
+            if(check(PTR)){
+              ptr = true;
+              advance();
+            }
+            consume(SEMICOLON, "Expect semicolon after variable");
+            variables.add(new VarTemplate(id, false, false));
+          }
+        }
+        else if(check(METHOD)){
+          advance();
+          methods.add(funcTemplate("method"));
+        }
+      }
+
+      consume(RIGHT_BRACE, "Expect '}' after interface body");
+      return new Stmt.Interface(name, methods, variables);
+    }
+
+    public Stmt.Enum enumDeclaration() {
+      Token name = consume(IDENTIFIER, "Expect enum name");
+
+      List<LoxEnum.Element> elements = new ArrayList<>();
+      int step = 0;
+
+      consume(LEFT_BRACE, "Expect '{' before enum body");
+
+      if(!check(RIGHT_BRACE)){
+        do{
+          if(check(IDENTIFIER)){
+            Token id = peek();
+            advance();
+            elements.add(new LoxEnum.Element(id, step));
+            step++;
+          }
+          else{
+            error(peek(), "Expected enum element");
+          }
+        } while(match(COMMA));
+      }
+      
+      consume(RIGHT_BRACE, "Expect '}' after enum body");
+
+      return new Stmt.Enum(name, elements);
+    }
+
+    private Stmt.Switch switchStatement() {
+
+      consume(LEFT_PAREN, "Expect '(' after 'switch'");
+      if(!check(IDENTIFIER)){
+        error(peek(), "Expected identifier");
+      }
+      Expr id = expression();
+      consume(RIGHT_PAREN, "Expect ')' after identifier");
+
+      consume(LEFT_BRACE, "Expect '{' before switch body");
+
+      List<Stmt.Case> cases = new ArrayList<>();
+      Stmt.Case defaultCase = null;
+
+      while(!check(RIGHT_BRACE) && !isAtEnd()){
+        if(match(CASE)){
+          consume(LEFT_PAREN, "Expect '(' before case value");
+          Expr value = expression();
+          consume(RIGHT_PAREN, "Expect ')' after case value");
+          Stmt body = null;
+          body = statement();
+          cases.add(new Stmt.Case(value, body));
+        }
+        else if(match(DEFAULT)){
+          Stmt body = null;
+          body = statement();
+          defaultCase = new Stmt.Case(null, body);
+        }
+      }
+
+      consume(RIGHT_BRACE, "Expect '}' after switch body");
+
+      return new Stmt.Switch(id, cases, defaultCase);
+    }
+
+    private FunctionTemplate funcTemplate(String kind){
+      Token name = consume(IDENTIFIER, "Expect function name for template");
+      consume(LEFT_PAREN, "Expect '(' after function name");
+      List<Token> params = new ArrayList<>();
+      if(!check(RIGHT_PAREN)){
+        do{
+          if(params.size() >= 255){
+            error(peek(), "Cant have more than 255 parameters");
+          }
+
+          params.add(
+            consume(IDENTIFIER, "Expect parameter name."));
+        } while (match(COMMA));
+      }
+
+      consume(RIGHT_PAREN, "Expect ')' after parameters");
+      boolean hasBody = true;
+      if(match(SEMICOLON)) hasBody = false;
+
+      List<Stmt> body = null;
+      if(hasBody){
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        body = block();
+      }
+
+      return new FunctionTemplate(name, params, kind.equals("static"), kind.equals("const"), hasBody, body);
     }
 
     private Stmt.Function function(String kind){
@@ -173,10 +342,16 @@ public class Parser {
         } while (match(COMMA));
       }
       consume(RIGHT_PAREN, "Expect ')' after parameters");
+      boolean hasBody = true;
+      if(match(SEMICOLON)) hasBody = false;
 
-      consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-      List<Stmt> body = block();
-      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"));
+      List<Stmt> body = null;
+      if(hasBody){
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        body = block();
+      }
+      
+      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"), hasBody);
     }
 
     private Stmt varDeclaration(boolean constant, boolean isStatic){
@@ -208,18 +383,37 @@ public class Parser {
       if(match(TEST)) return testStatement();
       if(match(GETFILE)) return getFileStatement();
       if(match(MODULE)) return moduleStmt();
+      if(match(SWITCH)) return switchStatement();
+      if(match(BREAK)) return breakStatement();
+      if(match(CONTINUE)) return continueStatement();
       if(match(LEFT_BRACE)) return new Stmt.Block(block());
 
       return expressionStatement();
     }
 
     private Stmt moduleStmt() {
+      if(definedModule){
+        throw error(previous(), "Module already defined");
+      }
+      definedModule = true;
       Token keyword = previous();
       while (!check(SEMICOLON)) {
         advance();
       }
       consume(SEMICOLON, "Expect ';' after module statement");
       return new Stmt.Module(previous());
+    }
+
+    private Stmt.Break breakStatement() {
+      Token keyword = previous();
+      consume(SEMICOLON, "Expect ';' after break");
+      return new Stmt.Break(keyword);
+    }
+
+    private Stmt.Continue continueStatement() {
+      Token keyword = previous();
+      consume(SEMICOLON, "Expect ';' after continue");
+      return new Stmt.Continue(keyword);
     }
 
     private Stmt getFileStatement() {
@@ -235,18 +429,32 @@ public class Parser {
       }
       imports.add(impName);
       if(!impName.contains(".lox")) {
-        //Get all .lox files in the directory
-        File folder = new File(".");
-        File[] listOfFiles = folder.listFiles();
-        for (int i = 0; i < listOfFiles.length; i++) {
-          if (listOfFiles[i].isFile()) {
-            if(listOfFiles[i].getName().contains(".lox")){
-              if(hasModule(impName, listOfFiles[i])){
-                paths.add(listOfFiles[i].getPath());
+        File f = new File(impName);
+        if(f.isDirectory()) {
+          File[] listOfFiles = f.listFiles();
+          for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+              if(listOfFiles[i].getName().contains(".lox")){
+                  paths.add(listOfFiles[i].getPath());
               }
             }
           }
         }
+        else{
+          File folder = new File(".");
+          File[] listOfFiles = folder.listFiles();
+          for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+              if(listOfFiles[i].getName().contains(".lox")){
+                if(hasModule(impName, listOfFiles[i])){
+                  paths.add(listOfFiles[i].getPath());
+                }
+              }
+            }
+          }
+        }
+        //Get all .lox files in the directory
+        
       }
       else{
         paths.add(impName);
@@ -288,7 +496,7 @@ public class Parser {
         java.util.Scanner scanner = new java.util.Scanner(file);
         if(scanner.hasNextLine()){
           String line = scanner.nextLine();
-          if(line.contains("\"" + module + "\"") && line.contains("module")){
+          if(line.contains(module) && line.contains("module")){
             scanner.close();
             return true;
           }
@@ -533,6 +741,14 @@ public class Parser {
     private boolean check(TokenType type){
       if(isAtEnd()) return false;
       return peek().type == type;
+    }
+
+    private boolean check(TokenType... type){
+      if(isAtEnd()) return false;
+      for(int i = 0; i < type.length; i++){
+        if(peek().type == type[i]) return true;
+      }
+      return false;
     }
 
     private Token advance(){

@@ -10,6 +10,7 @@ public class LoxFunction implements LoxCallable{
   private final LoxCallable callable;
   final boolean isStatic;
   final boolean isConstant;
+  public boolean global = true;
 
   LoxFunction(Stmt.Function declaration, Environment environment, boolean isInitializer, boolean isStatic, boolean isConstant) {
     this.declaration = declaration;
@@ -63,11 +64,33 @@ public class LoxFunction implements LoxCallable{
     return isNative ? callable.arity() : declaration.params.size();
   }
 
+  public boolean inEnv(Interpreter intp){
+    for(int i = 0; i < intp.environment.values.size(); i++){
+      if(intp.environment.values.keySet().toArray()[i].equals(declaration.name.lexeme)){
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public Object call(Interpreter interpreter, List<Object> arguments) {
+    global = inEnv(interpreter);
     if(isNative){
       return callable.call(interpreter, arguments);
     }
+    if(global){
+      if(!declaration.hasBody){
+        String parameString = "";
+        for(int i = 0; i < declaration.params.size(); i++){
+          parameString += declaration.params.get(i).lexeme;
+          if(i != declaration.params.size() - 1) parameString += ", ";
+        }
+        System.out.println("[Warning] Abstract Function '" + declaration.name.lexeme + "("+parameString+")' called from global context");
+        return null;
+      }
+    }
+    
     Environment environment = new Environment(closure);
     for (int i = 0; i < declaration.params.size(); i++) {
       environment.define(declaration.params.get(i).lexeme, arguments.get(i), false, false, false);

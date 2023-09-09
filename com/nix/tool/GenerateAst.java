@@ -31,10 +31,10 @@ public class GenerateAst {
       defineAst(ouputDir, "Stmt", Arrays.asList(
         "Block      : List<Stmt> statements",
         "Class      : Token name, Expr.Variable superclass," +
-                  " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates",
+                  " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase",
         "Expression : Expr expression",
         "Function   : Token name, Token extClass, List<Token> params," +
-                  " List<Stmt> body, boolean isStatic, boolean isConstant",
+                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody",
         "If         : Expr condition, Stmt thenBranch," +
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",
@@ -44,7 +44,13 @@ public class GenerateAst {
         "While      : Expr condition, Stmt body",
         "Test      : Expr name, Stmt body",
         "GetFile     : Token name, Expr path",
-        "Module    : Token keyword"
+        "Module    : Token keyword",
+        "Interface : Token name, List<FunctionTemplate> methods, List<VarTemplate> variables",
+        "Enum : Token name, List<LoxEnum.Element> elements",
+        "Switch : Expr value, List<Stmt.Case> cases, Stmt.Case defaultCase",
+        "Case: Expr value, Stmt body",
+        "Break: Token keyword",
+        "Continue: Token keyword"
       ));
     } catch (IOException e) {
       e.printStackTrace();

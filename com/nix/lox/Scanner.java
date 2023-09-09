@@ -18,7 +18,7 @@ public class Scanner {
   static{
     keywords = new HashMap<>();
     keywords.put("and",    TokenType.AND);
-    keywords.put("impl",  TokenType.CLASS);
+    keywords.put("object",  TokenType.CLASS);
     keywords.put("else",   TokenType.ELSE);
     keywords.put("false",  TokenType.FALSE);
     keywords.put("for",    TokenType.FOR);
@@ -41,8 +41,15 @@ public class Scanner {
     keywords.put("method",  TokenType.METHOD);
     keywords.put("test",  TokenType.TEST);
     keywords.put("expect",  TokenType.EXPECT);
-    keywords.put("import",  TokenType.GETFILE);
+    keywords.put("include",  TokenType.GETFILE);
     keywords.put("module",  TokenType.MODULE);
+    keywords.put("interface",  TokenType.INTERFACE);
+    keywords.put("enum",  TokenType.ENUM);
+    keywords.put("switch",  TokenType.SWITCH);
+    keywords.put("case",  TokenType.CASE);
+    keywords.put("default",  TokenType.DEFAULT);
+    keywords.put("break",  TokenType.BREAK);
+    //keywords.put("continue",  TokenType.CONTINUE);
   }
 
   Scanner(String source){
@@ -74,6 +81,9 @@ public class Scanner {
         }
         else if(match('-')){
           addToken(TokenType.DECREMENT);
+        }
+        else if(match('>')) {
+          addToken(TokenType.OUTARROW);
         }
         else{
           addToken(TokenType.MINUS);
@@ -127,7 +137,7 @@ public class Scanner {
           addToken(TokenType.LESS_EQUAL);
         }
         else if(match('-')){
-          addToken(TokenType.ARROW);
+          addToken(TokenType.INARROW);
         }
         else {
           addToken(TokenType.LESS);

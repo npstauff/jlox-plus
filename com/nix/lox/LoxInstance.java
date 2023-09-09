@@ -40,4 +40,12 @@ public class LoxInstance {
   public String toString() {
     return (String)klass.findMethod("toString", false).call(interpreter, new ArrayList<>());
   }
+
+  
+  protected void finalize() {
+    LoxFunction destructor = klass.findMethod("destructor", false);
+    if(destructor != null) {
+      destructor.bind(this).call(interpreter, null);
+    }
+  }
 }
