@@ -28,15 +28,21 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 
 | Operator         | code |  function (where x = the left hand side, y = the right hand side)|
 |--------------|:-----:|-----------:|
-| equals | = | assigns `y` to `x` |
-| equals check      |  == | returns `true` if `x` equals `y` |
-| not equals check      |  != | returns `true` if `x` does not equal `y` |
-| not      | ! | returns the opposite of `x` |
-| get      | . | finds a property on an object |
-| get shared      | :: | finds a shared property or method on an object |
-| null-safe get      | ?. | finds a property on an object, if the object is `nil`, it returns nil without trying to find the property |
-| null-safe assign      | ?= | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
-| null-safe check      | ?? | returns `x` unless its `nil` otherwise it returns `y`|
+| equals | x = y | assigns `y` to `x` |
+| equals check      | x == y | returns `true` if `x` equals `y` |
+| not equals check      | x != y | returns `true` if `x` does not equal `y` |
+| not      | !x | returns the opposite of `x` |
+| get      | x.y | finds a property `y` on an object `x` |
+
+| Jlox+         | code |  function (where x = the left hand side, y = the right hand side)|
+|--------------|:-----:|-----------:|
+| scope resolution      | x::y | finds a shared property `y` on an object `x` |
+| inheritance      | x <- y | inherits `x` from `y` |
+| interface implmentation      | x -> y | object `x` extends interface `y` |
+| method extension      | x:y | function `y` is extension method for object `x` |
+| null-safe get      | x?.y | finds a property on an object, if the object is `nil`, it returns nil without trying to find the property |
+| null-safe assign      | x ?= y | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
+| null-safe check      | x ?? y | returns `x` unless its `nil` otherwise it returns `y`|
 
 mutables
 ---
@@ -169,10 +175,31 @@ when(x > 5){
   System::println("x > 5!");
 }
 ```
+Switch statements are in jlox+, with default case supported
+```c#
+mut x = 10;
+switch (x) {
+  case (5) {
+    System::println("x is 5");
+  }
+
+  case (10) {
+    System::println("x is 10");
+  }
+
+  case (15) {
+    System::println("x is 15");
+  }
+
+  default {
+    System::println("x is something else");
+  }
+}
+```
 
 Interfaces
 ---
-In jlox+, interfaces are built with the `interface` keyword
+In jlox+, interfaces are built with the `interface` keyword. Any fields or methods defined in an interface must be fully implemented in any extending class including modifiers and parameters. Objects can extend interfaces with the `->` operator. This works along with inheritance, i.e `object ObjTwo <- ObjOne -> MyInterface`
 ```c#
 interface ITest {
   mut x;
@@ -182,27 +209,52 @@ interface ITest {
   method method2(y, z);
 }
 ```
-Interface functions can be defined with a body, to be used for default implementation
+Interface functions can be defined with a body, to be used for default implementation. If you end a function with a semicolon, either in a class or an interface, it marks it as abstract. If a method is abstract in a class, it looks in its interfaces to see if there is a matching non-abstract function to fufill its default implementation.
 ```c#
 interface ITest {
-  method imethod(x);
-  method method2(y, z);
-  method def() { System::println("def test"); }
+  method imethod(x); //abstract
+  method method2(y, z); //abstract
+  method def() { System::println("def test"); } //non-abstract
 }
 
 object TestObj -> ITest {
-  method imethod(x) { }
-  method method2(y, z) { }
-  method def();
+  method imethod(x) { } //non-abstract
+  method method2(y, z) { } //non-abstract
+  method def(); //abstract, looks for non-abstract method in ITest
 }
 
 new ITest().def(); //prints 'def test'
+```
+Objects can implement multiple interfaces
+```c#
+interface IMyInterface {}
+interface IMySecondInterface {}
+
+object MyObj -> IMyInterface, IMySecondInterface {}
+```
+
+
+
+Enums
+---
+Jlox+ enums are relatively simple, and are basically just int wrappers
+``` c#
+enum MyEnum {
+  ITEM, //0
+  ANOTHERITEM, //1
+  AFINALITEM //1
+}
+```
+Enums can be accessed with the `scope resolution` operator
+```js
+mut x = MyEnum::ITEM; //x equals 0
+mut y = MyEnum::AFINALITEM; //y equals 2
 ```
 
 Functions
 ---
 fixed functions
-```kotlin
+```js
 fixed func test() {}
 func two() {}
 test = two; //not allowed
@@ -212,16 +264,32 @@ When defined on a class, functions are made with the `method` keyword
 method testMethod {}
 ```
 
+Extension Methods
+---
+Extension methods can be created by placing the name of the object you want to extend followed by a extension operator and then the method name and declaration.
+```js
+object MyObj {}
+
+func MyObj:extMethod() {}
+shared func MyObj:sharedExtMethod() {}
+
+new MyObj().extMethod();
+MyObj::sharedExtMethod();
+```
+
 Objects
 ---
-functions in objects can be marked `shared` which works like `static` in languages such as java or C
+functions and mutables in objects can be marked `shared` which works like `static` in languages such as java or c#
 ```js
 object Test{
+  shared mut x = 10;
+
   shared method sayHi(){
     System::println("hi");
   }
 }
 
+Test::x;
 Test::sayHi();
 ```
 
@@ -264,13 +332,6 @@ by default in jlox+, all objects derive from `Object`.
 method toString(){
   return "Lox.Object$"+type;
 }
-```
-- `typeof(other)` returns true if the objects are the same type
-```js
-mut x = Object();
-mut y = System();
-x.typeof(y); //false
-x.typeof(Object); //true
 ```
 - `fields()` returns a LoxMap containing the fields of said object
 ```js
