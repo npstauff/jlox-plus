@@ -116,7 +116,7 @@ Objects
 ---
 jlox+ is an object oriented language that supports objects and single-inheritance.
 fixedructers are defined by making an `constructor()` method.
-instances are created by calling the object like a function and passing the parameters for its `constructor()` method.
+instances are created by usin the `new` or `spawn` keywords and passing the parameters for its `constructor()` method.
 ```js
 object Program{
   mut x = 0;
@@ -138,8 +138,8 @@ object App <- Program{
   }
 }
 
-mut y = Program();
-mut x = App();
+mut y = new Program();
+mut x = spawn App();
 ```
 mutables in objects must be initialized immediatly. Fields can be added on the fly with the `.` operator 
 # Jlox+ features
@@ -395,8 +395,8 @@ Color::blue();
 Color::black();
 Color::white();
 
-Color().set(r, g, b);
-Color().setAlpha(a);
+new Color().set(r, g, b);
+new Color().setAlpha(a);
 ```
 
 # TODO
