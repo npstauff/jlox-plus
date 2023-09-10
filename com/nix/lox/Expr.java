@@ -19,6 +19,7 @@ abstract class Expr {
     R visitUnaryExpr(Unary expr);
     R visitVariableExpr(Variable expr);
     R visitNewExpr(New expr);
+    R visitTypeofExpr(Typeof expr);
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value, AssignType type) {
@@ -237,6 +238,18 @@ abstract class Expr {
     final Expr callee;
     final Token paren;
     final List<Expr> arguments;
+  }
+  static class Typeof extends Expr {
+    Typeof(Expr value) {
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitTypeofExpr(this);
+    }
+
+    final Expr value;
   }
 
    abstract <R> R accept(Visitor<R> visitor);

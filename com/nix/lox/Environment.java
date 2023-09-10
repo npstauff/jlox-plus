@@ -28,8 +28,15 @@ public class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
+  void define(String name, Object value, boolean constant, boolean stat, boolean ptr, LoxType type){
+    if(new LoxType(value).type != type.type) {
+      throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", value, 0), "Cant assign value of type '" + new LoxType(value).type + "' to variable '"+name+"' of type '" + type.type + "'");
+    }
+    put(name, new Field(value, constant, stat, ptr, type));
+  }
+
   void define(String name, Object value, boolean constant, boolean stat, boolean ptr){
-    put(name, new Field(value, constant, stat, ptr));
+    put(name, new Field(value, constant, stat, ptr, null));
   }
 
   Object getAt(int distance, String name){
@@ -37,8 +44,8 @@ public class Environment {
     return value != null ? value.value : null;
   }
 
-  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat, boolean ptr){
-    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat, ptr));
+  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat, boolean ptr, LoxType type){
+    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat, ptr, type));
   }
 
   Environment ancestor(int distance){
@@ -53,6 +60,7 @@ public class Environment {
   void put(String name, Field field){
     if(values.containsKey(name)){
       Field f = values.get(name);
+
       if(f.constant){
         throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", f.value, 0), "Cant assign to constant value '" + name +"'");
       }
@@ -71,7 +79,13 @@ public class Environment {
       isConstant = values.get(name.lexeme).constant;
       boolean stat = values.get(name.lexeme).isstatic;
       boolean ptr = values.get(name.lexeme).pointer;
-      put(name.lexeme, new Field(value, isConstant, stat, ptr));
+      Field f = new Field(value, isConstant, stat, ptr, values.get(name.lexeme).type);
+      LoxType type = values.get(name.lexeme).type;
+      LoxType objType = new LoxType(value);
+      if(type != null && objType != null && type.type != objType.type) {
+        throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", f.value, 0), "Cant assign value of type '" + objType.type + "' to variable '"+name.lexeme+"' of type '" + type.type + "'");
+      }
+      put(name.lexeme, f);
       return;
     }
 

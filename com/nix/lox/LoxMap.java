@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.nix.lox.LoxType.TypeEnum;
+
 public class LoxMap extends LoxNative{
   private Map<Object, Object> items = new HashMap<Object, Object>();
 
@@ -36,7 +38,7 @@ public class LoxMap extends LoxNative{
         return items.get(arguments.get(0));
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
 }
 
 private LoxFunction put(Environment environment) {
@@ -53,7 +55,7 @@ private LoxFunction put(Environment environment) {
         return null;
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
 }
 
 private LoxFunction keys(Environment environment) {
@@ -75,7 +77,7 @@ private LoxFunction keys(Environment environment) {
         return list;
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
 }
 
 private LoxFunction values(Environment environment) {
@@ -97,7 +99,7 @@ private LoxFunction values(Environment environment) {
         return list;
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
 }
 
 

@@ -71,7 +71,7 @@ abstract class Stmt {
     final Expr expression;
   }
   static class Function extends Stmt {
-    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator) {
+    Function(Token name, Token extClass, List<Parameter> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator, LoxType returnType) {
       this.name = name;
       this.extClass = extClass;
       this.params = params;
@@ -80,6 +80,7 @@ abstract class Stmt {
       this.isConstant = isConstant;
       this.hasBody = hasBody;
       this.isoperator = isoperator;
+      this.returnType = returnType;
     }
 
     @Override
@@ -89,12 +90,13 @@ abstract class Stmt {
 
     final Token name;
     final Token extClass;
-    final List<Token> params;
-    public List<Stmt> body;
+    final List<Parameter> params;
+    List<Stmt> body;
     final boolean isStatic;
     final boolean isConstant;
     final Boolean hasBody;
     final Boolean isoperator;
+    final LoxType returnType;
   }
   static class If extends Stmt {
     If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
@@ -157,12 +159,13 @@ abstract class Stmt {
     final Expr value;
   }
   static class Var extends Stmt {
-    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer) {
+    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer, LoxType type) {
       this.name = name;
       this.initializer = initializer;
       this.isConstant = isConstant;
       this.isStatic = isStatic;
       this.pointer = pointer;
+      this.type = type;
     }
 
     @Override
@@ -175,6 +178,7 @@ abstract class Stmt {
     final boolean isConstant;
     final boolean isStatic;
     final boolean pointer;
+    final LoxType type;
   }
   static class While extends Stmt {
     While(Expr condition, Stmt body) {

@@ -50,6 +50,12 @@ public class Scanner {
     keywords.put("default",  TokenType.DEFAULT);
     keywords.put("break",  TokenType.BREAK);
     keywords.put("operator",  TokenType.OPERATOR);
+    keywords.put("num",  TokenType.NUMPARAM);
+    keywords.put("bool",  TokenType.BOOLEAN);
+    keywords.put("string",  TokenType.STRPARAM);
+    keywords.put("void",  TokenType.VOID);
+    keywords.put("obj",  TokenType.OBJPARAM);
+    keywords.put("typeof",  TokenType.TYPEOF);
     //keywords.put("continue",  TokenType.CONTINUE);
   }
 

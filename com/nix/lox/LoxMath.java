@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.nix.lox.Expr.This;
+import com.nix.lox.LoxType.TypeEnum;
 
 /**
  * LoxObject
@@ -43,7 +44,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.sqrt((double)arguments.get(0));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction round(Environment environment) {
@@ -59,7 +60,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.round((double)arguments.get(0));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction floor(Environment environment) {
@@ -75,7 +76,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.floor((double)arguments.get(0));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction abs(Environment environment) {
@@ -91,7 +92,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.abs((double)arguments.get(0));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction min(Environment environment) {
@@ -107,7 +108,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.min((double)arguments.get(0), (double)arguments.get(1));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction max(Environment environment) {
@@ -123,7 +124,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.max((double)arguments.get(0), (double)arguments.get(1));
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
 

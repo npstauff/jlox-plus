@@ -30,6 +30,7 @@ import com.nix.lox.Expr.This;
 import com.nix.lox.Expr.Unary;
 import com.nix.lox.Expr.Variable;
 import com.nix.lox.Expr.Visitor;
+import com.nix.lox.LoxType.TypeEnum;
 import com.nix.lox.Stmt.Block;
 import com.nix.lox.Stmt.Break;
 import com.nix.lox.Stmt.Case;
@@ -309,7 +310,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         throw new RuntimeError(new Token(TokenType.VAR, stmt.name.lexeme, value, 0), "Pointer must be reference");
       }
     }
-    environment.define(stmt.name.lexeme, value, stmt.isConstant, stmt.isStatic, stmt.pointer);
+    environment.define(stmt.name.lexeme, value, stmt.isConstant, stmt.isStatic, stmt.pointer, stmt.type);
     return null;
   }
 
@@ -341,6 +342,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     boolean isConstant = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).constant : false;
     boolean isStatic = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).isstatic : false;
     boolean ptr = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).pointer : false;
+    LoxType type = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).type : null;
     Integer distance = locals.get(expr);
 
     boolean hasObject = distance != null ? 
@@ -351,7 +353,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       boolean rightIsDouble = false;
       Object left = distance != null ? environment.getAt(distance, expr.name.lexeme) : environment.get(expr.name);
 
-      if(!validAssignment(left, right) && (expr.type != AssignType.INCREMENT && expr.type != AssignType.DECREMENT)){
+      if(!validAssignment(left, right)){
         Lox.error(new Token(TokenType.EQUAL, left.toString(), 0, 0), "Not a valid assignment");
         return null;
       }
@@ -366,7 +368,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           rightD = (int)((double)right);
         }
         else{
-          rightS = (String)right;
+          rightS = right.toString();
         }
       }
       if(left instanceof Double){
@@ -374,7 +376,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         leftD = (int)((double)left);
       }
       else{
-        leftS = (String)left;
+        leftS = left.toString();
       }
       
       boolean special = distance != null ? (environment.getAt(distance, expr.name.lexeme) != null
@@ -446,7 +448,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
     
     if(distance != null){
-      environment.assignAt(distance, expr.name, right, isConstant, isStatic, ptr);
+      environment.assignAt(distance, expr.name, right, isConstant, isStatic, ptr, type);
     } else {
       globals.assign(expr.name, right);
     }
@@ -459,9 +461,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   public boolean validAssignment(Object left, Object right){
-    if((!(left instanceof Double) && !(left instanceof String))
-    || (!(right instanceof Double) && !(right instanceof String))){
+    LoxType leftType = new LoxType(left);
+    LoxType rightType = new LoxType(right);
+    if(leftType.type != rightType.type){
       return false;
+    }
+    else{
+      if(leftType.type == TypeEnum.OBJECT){
+        if(leftType.name.equals(rightType.name)){
+          return true;
+        }
+        else{
+          return false;
+        }
+      }
     }
     return true;
   }
@@ -595,7 +608,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(Function stmt) {
-    LoxFunction function = new LoxFunction(stmt, environment, false, stmt.isStatic, stmt.isConstant, false);
+    LoxFunction function = new LoxFunction(stmt, environment, false, stmt.isStatic, stmt.isConstant, false, stmt.returnType);
     if(stmt.extClass == null) {
       environment.define(stmt.name.lexeme, function, function.isConstant, function.isStatic, false);
     }
@@ -670,13 +683,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           throw new RuntimeError(stmt.name, "Can't call abstract method '"+method.name.lexeme+"' from object '"+stmt.name.lexeme+"' because there no matching interface functions");
         }
       }
-      LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant, method.isoperator);
+      LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant, method.isoperator, method.returnType);
       function.global = false;
       methods.put(method.name.lexeme, function);
     }
     for (Stmt.Var var : stmt.variables) {
       Object value = evaluate(var.initializer);
-      Field f = new Field(value, var.isConstant, var.isStatic, var.pointer);
+      if(new LoxType(value).type != var.type.type){
+        throw new RuntimeError(var.name, "Variable '"+var.name.lexeme+"' must be of type '"+var.type.type+"'");
+      }
+      Field f = new Field(value, var.isConstant, var.isStatic, var.pointer, var.type);
       fields.put(var.name.lexeme, f);
     }
 
@@ -845,7 +861,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   private void defineNativeClasses() {
     defineSystem();
     defineObject();
-    defineGraphics();
     defineMath();
     defineList();
     defineMap();
@@ -893,12 +908,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     environment.assign(new Token(TokenType.CLASS, "Object", null, -1), object);
   }
 
-  public void defineGraphics(){
-    environment.define("Graphics", null, false, false, false);
-    LoxGraphics graphics = new LoxGraphics(environment, this, null);
-    environment.assign(new Token(TokenType.CLASS, "Graphics", null, -1), graphics);
-  }
-
   @Override
   public Object visitGetExpr(Get expr) {
     Object object = evaluate(expr.object);
@@ -929,7 +938,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object object = evaluate(expr.object);
 
     if(!(object instanceof LoxInstance)){
-      throw new RuntimeError(expr.name, "Only instances have fields");
+      if(object instanceof LoxClass){
+        Object value = evaluate(expr.value);
+        ((LoxClass)object).set(expr.name.lexeme, value);
+        return value;
+      }
+      else{
+        throw new RuntimeError(expr.name, "Only instances and objects have fields");
+      } 
     }
 
     Object value = evaluate(expr.value);
@@ -1023,6 +1039,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Void visitCaseStmt(Case stmt) {
     return null;
+  }
+
+
+
+  @Override
+  public Object visitTypeofExpr(Expr.Typeof stmt) {
+    Object value = evaluate(stmt.value);
+    return new LoxType(value).type;
   }
 
   

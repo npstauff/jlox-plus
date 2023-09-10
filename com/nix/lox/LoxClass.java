@@ -9,12 +9,14 @@ class Field{
   final boolean constant;
   final boolean isstatic;
   final boolean pointer;
+  final LoxType type;
 
-  Field(Object value, boolean constant, boolean isstatic, boolean pointer){
+  Field(Object value, boolean constant, boolean isstatic, boolean pointer, LoxType type){
     this.value = value;
     this.constant = constant;
     this.isstatic = isstatic;
     this.pointer = pointer;
+    this.type = type;
   }
 
   public Object getValue(){
@@ -90,6 +92,7 @@ public class LoxClass implements LoxCallable{
     boolean constant = false;
     boolean isstatic = false;
     boolean pointer = false;
+    LoxType type = new LoxType(value);
     if(fields.containsKey(name)){
       constant = fields.get(name).constant;
       isstatic = fields.get(name).isstatic;
@@ -100,7 +103,7 @@ public class LoxClass implements LoxCallable{
     } 
     else if(methods.containsKey(name)){
       constant = methods.get(name).isConstant;
-      Field f = new Field(value, constant, methods.get(name).isStatic, false);
+      Field f = new Field(value, constant, methods.get(name).isStatic, false, methods.get(name).returnType);
       fields.put(name, f);
       return f;
     }
@@ -110,17 +113,24 @@ public class LoxClass implements LoxCallable{
         superClass.set(name, value);
       } 
       else{
-        return put(name, value, constant, isstatic, pointer);
+        return put(name, value, constant, isstatic, pointer, type);
       }
     }
     
-    return put(name, value, constant, isstatic, pointer);
+    return put(name, value, constant, isstatic, pointer, type);
   }
 
-  Field put(String name, Object value, boolean constant, boolean isstatic, boolean pointer){
-    Field newf = new Field(value, constant, isstatic, pointer);
+  public static void checkType(LoxType l, LoxType r){
+    if(!l.type.equals(r.type)){
+      throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", l, 0), "Type mismatch: '" + l + "' is not a '" + r + "'");
+    }
+  }
+
+  Field put(String name, Object value, boolean constant, boolean isstatic, boolean pointer, LoxType type){
+    Field newf = new Field(value, constant, isstatic, pointer, type);
     if(fields.containsKey(name)){
-      Field f = fields.get(name);    
+      Field f = fields.get(name);
+      checkType(new LoxType(f.value), type);    
       if(f.constant){
         throw new RuntimeError(new Token(TokenType.VAR, "name", f.value, 0), "Cant assign to constant '" + name +"'");
       }

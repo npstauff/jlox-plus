@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.nix.lox.Expr.This;
+import com.nix.lox.LoxType.TypeEnum;
 
 /**
  * LoxObject
@@ -48,7 +49,7 @@ public class LoxSystem extends LoxNative{
         return (double)(Math.random() * (upper - lower)) + lower + (inclusive ? 1 : 0);
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
   }
 
   LoxFunction debug(Environment environment, boolean newline, boolean err){
@@ -66,7 +67,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
   }
 
   LoxFunction write(Environment environment) {
@@ -94,7 +95,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
   }
 
   LoxFunction cls(Environment environment){
@@ -112,7 +113,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
   }
 
   @Override

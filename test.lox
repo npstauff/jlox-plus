@@ -1,7 +1,14 @@
-object Obj {
-    mut x = 0;
-
-    method setX(y) {
-        this.x = y;
-    }
+object Test {
+    shared num x = 10;
 }
+
+func showShared(obj Test y, num x) -> void {
+    System::println(y(0, 10) + x);
+}
+
+
+func add(num x, num y) -> num {
+    return x + y;
+}
+
+showShared(add(10, 10), 70);

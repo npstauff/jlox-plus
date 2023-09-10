@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.nix.lox.LoxType.TypeEnum;
+
 public class LoxObject extends LoxNative{
 
   LoxObject(Environment environment, Interpreter interpreter, String name, LoxClass type) {
@@ -41,11 +43,11 @@ public class LoxObject extends LoxNative{
         return map;
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
   }
 
   public void defineFields(){
-    put("name", "Object$"+this.type, false, false, false);
+    put("name", "Object$"+this.type, false, false, false, new LoxType("name", TypeEnum.STRING));
   }
 
   private LoxFunction init(Environment environment){
@@ -61,7 +63,7 @@ public class LoxObject extends LoxNative{
             return null;
         }
         
-      }, environment, true);
+      }, environment, true, new LoxType(name, TypeEnum.VOID));
   }
 
   private LoxFunction toString(Environment environment) {
@@ -86,7 +88,7 @@ public class LoxObject extends LoxNative{
           return "Lox.Type$"+type;
         }
         
-      }, environment, false);
+      }, environment, false, new LoxType(name, TypeEnum.STRING));
   }
 
   private LoxFunction typeof(Environment environment){
@@ -114,7 +116,7 @@ public class LoxObject extends LoxNative{
         return name.equals(klass.name);
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.BOOLEAN));
   }
 
 }

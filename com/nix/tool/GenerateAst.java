@@ -25,7 +25,8 @@ public class GenerateAst {
         "This     : Token keyword",
         "Unary    : Token operator, Expr right",
         "Variable : Token name",
-        "New      : Token keyword, Expr callee, Token paren, List<Expr> arguments"
+        "New      : Token keyword, Expr callee, Token paren, List<Expr> arguments",
+        "Typeof: Expr value"
       ));
 
       defineAst(ouputDir, "Stmt", Arrays.asList(
@@ -33,14 +34,14 @@ public class GenerateAst {
         "Class      : Token name, Expr.Variable superclass," +
                   " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase",
         "Expression : Expr expression",
-        "Function   : Token name, Token extClass, List<Token> params," +
-                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator",
+        "Function   : Token name, Token extClass, List<Parameter> params," +
+                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator, LoxType returnType",
         "If         : Expr condition, Stmt thenBranch," +
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",
         "Return     : Token keyword, Expr value",
         "Expect     : Token keyword, Expr value",
-        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer",
+        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer, LoxType type",
         "While      : Expr condition, Stmt body",
         "Test      : Expr name, Stmt body",
         "GetFile     : Token name, Expr path",

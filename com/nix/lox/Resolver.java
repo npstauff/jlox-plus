@@ -70,14 +70,20 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     return null;
   }
 
+  @Override
+  public Void visitTypeofExpr(Expr.Typeof stmt) {
+    resolve(stmt.value);
+    return null;
+  }
+
   private void resolveFunction(Stmt.Function function, FunctionType type) {
     FunctionType enclosingFunction = currentFunction;
     currentFunction = type;
 
     beginScope();
-    for (Token param : function.params) {
-      declare(param);
-      define(param);
+    for (Parameter param : function.params) {
+      declare(param.name);
+      define(param.name);
     }
     if(function.hasBody) resolve(function.body);
     endScope();

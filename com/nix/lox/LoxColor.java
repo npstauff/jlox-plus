@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.nix.lox.LoxType.TypeEnum;
+
 public class LoxColor extends LoxNative{
   private List<Object> items = new ArrayList<Object>();
 
@@ -48,7 +50,7 @@ public class LoxColor extends LoxNative{
         return instance;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction green(Environment environment) {
@@ -72,7 +74,7 @@ public class LoxColor extends LoxNative{
 
       
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.OBJECT));
 
     
   }
@@ -96,7 +98,7 @@ public class LoxColor extends LoxNative{
         return instance;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction black(Environment environment) {
@@ -118,7 +120,7 @@ public class LoxColor extends LoxNative{
         return instance;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction white(Environment environment) {
@@ -140,7 +142,7 @@ public class LoxColor extends LoxNative{
         return instance;
       }
       
-    }, environment, false, true);
+    }, environment, false, true, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction set(Environment environment) {
@@ -159,7 +161,7 @@ public class LoxColor extends LoxNative{
         return null;
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction setAlpha(Environment environment) {
@@ -176,7 +178,7 @@ public class LoxColor extends LoxNative{
         return null;
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
   }
   
 

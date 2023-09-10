@@ -12,6 +12,10 @@ public class LoxInstance {
   LoxInstance(LoxClass klass, Interpreter interpreter) {
     this.klass = klass;
     this.interpreter = interpreter;
+
+    for(Map.Entry<String, Field> field : klass.fields.entrySet()){
+      if(!field.getValue().isstatic) fields.put(field.getKey(), field.getValue().value);
+    }
   }
 
   Object get(Token name, boolean staticGet){

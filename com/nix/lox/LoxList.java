@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.nix.lox.LoxType.TypeEnum;
+
 public class LoxList extends LoxNative{
   private List<Object> items = new ArrayList<Object>();
 
@@ -45,7 +47,7 @@ public class LoxList extends LoxNative{
         return false;
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.BOOLEAN));
   }
 
 private LoxFunction get(Environment environment) {
@@ -61,7 +63,7 @@ private LoxFunction get(Environment environment) {
         return items.get((int)((double)arguments.get(0)));
       }
       
-    }, environment, false);
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
   }
 
 private LoxFunction add(Environment environment) {
@@ -78,7 +80,7 @@ private LoxFunction add(Environment environment) {
         return null;
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.VOID));
   }
 
   private LoxFunction remove(Environment environment) {
@@ -95,7 +97,7 @@ private LoxFunction add(Environment environment) {
         return null;
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.VOID));
   }
 
   private LoxFunction indexOf(Environment environment) {
@@ -111,7 +113,7 @@ private LoxFunction add(Environment environment) {
         return items.indexOf((arguments.get(0)));
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction length(Environment environment) {
@@ -127,7 +129,7 @@ private LoxFunction add(Environment environment) {
         return (double)items.size();
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.NUMBER));
   }
 
   private LoxFunction first(Environment environment) {
@@ -143,7 +145,7 @@ private LoxFunction add(Environment environment) {
         return items.get(0);
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
   }
 
   private LoxFunction last(Environment environment) {
@@ -159,7 +161,7 @@ private LoxFunction add(Environment environment) {
         return items.get(items.size() - 1);
       }
       
-    }, environment, false, false);
+    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
   }
 
  @Override
