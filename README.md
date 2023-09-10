@@ -293,6 +293,25 @@ Test::x;
 Test::sayHi();
 ```
 
+Operator Overloading
+---
+If an object is encountered in an operator, it will look for the overload method for that operator. Operator methods must be defined with the `operator` keyword, and must have two parameters. Calling an operator function on it's own will result in a runtime error.
+```c#
+object MyObj {
+  mut x = 0;
+
+  method constructor(x) {
+    this.x = x;
+  }
+
+  operator add(x, y) {
+    return x.x + y.x;
+  }
+}
+
+mut x = MyObj(10) + MyObj(20); //looks for a method defined with the `operator` keyword called add. returns 30.
+```
+
 Built-in types
 ---
 Jlox+ defines a number of built in types to use
