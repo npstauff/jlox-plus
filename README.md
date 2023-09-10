@@ -5,12 +5,12 @@ Jlox-plus is an superset of the Lox language created by **Robert Nystrom**. It w
 
 Building is a little finnicky due to the JRE, but i'll do my best to explain it
 
-Compiling to .class
+Compiling to .object
 ---
 ```powershell
 javac -d build com/nix/lox/*.java
 ```
-This will turn each .java file int .class file and place it into the build folder
+This will turn each .java file int .object file and place it into the build folder
 
 Building to jar
 ---
@@ -28,26 +28,33 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 
 | Operator         | code |  function (where x = the left hand side, y = the right hand side)|
 |--------------|:-----:|-----------:|
-| equals | = | assigns `y` to `x` |
-| equals check      |  == | returns `true` if `x` equals `y` |
-| not equals check      |  != | returns `true` if `x` does not equal `y` |
-| not      | ! | returns the opposite of `x` |
-| get      | . | finds a property on an object |
-| null-safe get      | ?. | finds a property on an object, if the object is `nil`, it returns nil without trying to find the property |
-| null-safe assign      | ?= | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
-| null-safe check      | ?? | returns `x` unless its `nil` otherwise it returns `y`|
+| equals | x = y | assigns `y` to `x` |
+| equals check      | x == y | returns `true` if `x` equals `y` |
+| not equals check      | x != y | returns `true` if `x` does not equal `y` |
+| not      | !x | returns the opposite of `x` |
+| get      | x.y | finds a property `y` on an object `x` |
 
-Variables
+| Jlox+         | code |  function (where x = the left hand side, y = the right hand side)|
+|--------------|:-----:|-----------:|
+| scope resolution      | x::y | finds a shared property `y` on an object `x` |
+| inheritance      | x <- y | inherits `x` from `y` |
+| interface implmentation      | x -> y | object `x` extends interface `y` |
+| method extension      | x:y | function `y` is extension method for object `x` |
+| null-safe get      | x?.y | finds a property on an object, if the object is `nil`, it returns nil without trying to find the property |
+| null-safe assign      | x ?= y | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
+| null-safe check      | x ?? y | returns `x` unless its `nil` otherwise it returns `y`|
+
+mutables
 ---
-Variables in lox are dynamic, and can be assigned as either fixed, variable, or shared
+mutables in lox are dynamic, and can be assigned as either fixed, mutable, or shared
 
 ```js
-var x = 5;
+mut x = 5;
 fixed x = 5;
 ```
-Assigning variables works as expected, with added support for postfix increments and decrements
+Assigning mutables works as expected, with added support for postfix increments and decrements
 ```js
-var x = 10;
+mut x = 10;
 x += 5;
 x -= 5;
 x *= 5;
@@ -57,7 +64,7 @@ x--;
 ```
 jlox+ also supports the power operator
 ```js
-var x = 5;
+mut x = 5;
 x ** 2;
 //Result: 25
 ```
@@ -71,48 +78,48 @@ Control Flow
 ---
 Control flow in lox is similar to languages like C or Java
 ```js
-var x = 5;
+mut x = 5;
 if(x == 5){
-  println(x);
+  System::println(x);
 }
 else{
-  println("not five");
+  System::println("not five");
 }
 ```
 jlox+ also supports while and for loops.
 ```js
-var x = 5;
+mut x = 5;
 while(x != 10){
-  println("not ten");
+ System::println("not ten");
 }
 ```
 ```js
-for(var i = 0; i < 10; i++){
-  println("I: " + i);
+for(mut i = 0; i < 10; i++){
+  System::println("I: " + i);
 }
 ```
-Functions
+functions
 ---
-Functions are defined with the `fun` keyword and can have local fixeds and variables
+functions are defined with the `func` keyword and can have local fixeds and mutables
 ```kotlin
-fun helloWorld(message){
-  println("Hello, " + message);
+func helloWorld(message){
+  System::println("Hello, " + message);
 }
 ```
-Functions can be marked fixed, which makes them unable to be reassigned
+functions can be marked fixed, which makes them unable to be reassigned
 ```kotlin
-fixed fun helloWorld(message){
-  println("Hello, " + message);
+fixed func helloWorld(message){
+  System::println("Hello, " + message);
 }
 ```
-Classes
+Objects
 ---
-jlox+ is an object oriented language that supports classes and single-inheritance.
-fixedructers are defined by making an `init()` method.
-instances are created by calling the class like a function and passing the parameters for its `init()` method.
+jlox+ is an object oriented language that supports objects and single-inheritance.
+fixedructers are defined by making an `constructor()` method.
+instances are created by usin the `new` or `spawn` keywords and passing the parameters for its `constructor()` method.
 ```js
-class Program{
-  var x = 0;
+object Program{
+  mut x = 0;
   fixed y = 0;
   
   init(){
@@ -120,26 +127,30 @@ class Program{
   }
 }
 
-class App < Program{
-  init(){
-    super.init();
+object App <- Program{
+  method constructor(){
+    super.contructor();
     this.x = 10;
+  }
+
+  method sayHi() {
+    System::println("hi");
   }
 }
 
-var y = Program();
-var x = App();
+mut y = new Program();
+mut x = spawn App();
 ```
-Variables in classes must be initialized immediatly. Fields can be added on the fly with the `.` operator 
+mutables in objects must be initialized immediatly. Fields can be added on the fly with the `.` operator 
 # Jlox+ features
-Variables
+mutables
 ---
-fixed objects, postfix increments and decrements. Variables declared in a class, can be fixed and shared.
+fixed objects, postfix increments and decrements. mutables declared in a object, can be fixed and shared.
 
-Calling `shared` methods/variables
+Calling `shared` methods and mutables
 ---
-To call a shared method or variable, use the `scope resolution operator`
-```c++
+To call a shared method or mutable, use the `scope resolution operator`
+```js
 object TestObj {
   shared mut x = 10;
   shared method testMethod () {}
@@ -161,29 +172,124 @@ when(x > 5){
   x++;
 } do{
   //executed once the when condition is false
-  println("x > 5!");
+  System::println("x > 5!");
 }
+```
+Switch statements are in jlox+, with default case supported
+```c#
+mut x = 10;
+switch (x) {
+  case (5) {
+    System::println("x is 5");
+  }
+
+  case (10) {
+    System::println("x is 10");
+  }
+
+  case (15) {
+    System::println("x is 15");
+  }
+
+  default {
+    System::println("x is something else");
+  }
+}
+```
+
+Interfaces
+---
+In jlox+, interfaces are built with the `interface` keyword. Any fields or methods defined in an interface must be fully implemented in any extending class including modifiers and parameters. Objects can extend interfaces with the `->` operator. This works along with inheritance, i.e `object ObjTwo <- ObjOne -> MyInterface`
+```c#
+interface ITest {
+  mut x;
+  mut y;
+
+  method imethod(x);
+  method method2(y, z);
+}
+```
+Interface functions can be defined with a body, to be used for default implementation. If you end a function with a semicolon, either in a class or an interface, it marks it as abstract. If a method is abstract in a class, it looks in its interfaces to see if there is a matching non-abstract function to fufill its default implementation.
+```c#
+interface ITest {
+  method imethod(x); //abstract
+  method method2(y, z); //abstract
+  method def() { System::println("def test"); } //non-abstract
+}
+
+object TestObj -> ITest {
+  method imethod(x) { } //non-abstract
+  method method2(y, z) { } //non-abstract
+  method def(); //abstract, looks for non-abstract method in ITest
+}
+
+new ITest().def(); //prints 'def test'
+```
+Objects can implement multiple interfaces
+```c#
+interface IMyInterface {}
+interface IMySecondInterface {}
+
+object MyObj -> IMyInterface, IMySecondInterface {}
+```
+
+
+
+Enums
+---
+Jlox+ enums are relatively simple, and are basically just int wrappers
+``` c#
+enum MyEnum {
+  ITEM, //0
+  ANOTHERITEM, //1
+  AFINALITEM //1
+}
+```
+Enums can be accessed with the `scope resolution` operator
+```js
+mut x = MyEnum::ITEM; //x equals 0
+mut y = MyEnum::AFINALITEM; //y equals 2
 ```
 
 Functions
 ---
 fixed functions
-```kotlin
-fixed fun test() {}
-fun two() {}
+```js
+fixed func test() {}
+func two() {}
 test = two; //not allowed
 ```
-
-Classes
----
-functions in classes can be marked `shared` which works like `static` in languages such as java or C
+When defined on a class, functions are made with the `method` keyword
 ```js
-class Test{
+method testMethod {}
+```
+
+Extension Methods
+---
+Extension methods can be created by placing the name of the object you want to extend followed by a extension operator and then the method name and declaration.
+```js
+object MyObj {}
+
+func MyObj:extMethod() {}
+shared func MyObj:sharedExtMethod() {}
+
+new MyObj().extMethod();
+MyObj::sharedExtMethod();
+```
+
+Objects
+---
+functions and mutables in objects can be marked `shared` which works like `static` in languages such as java or c#
+```js
+object Test{
+  shared mut x = 10;
+
   shared method sayHi(){
-    println("hi");
+    System::println("hi");
   }
 }
 
+Test::x;
 Test::sayHi();
 ```
 
@@ -192,48 +298,45 @@ Built-in types
 Jlox+ defines a number of built in types to use
 
 **System**
-
-for now, the system class only defines a `shared` method `random(lower, upper)` but more is planned for the future
-```java
-System.random(0, 100);
+```js
+System::random(0, 100, false); //random number between lower and upper true/false for inclusive or not
+System::println(x); //print line
+System::print(x); //print without newline
+System::cls(); //clear screen
+System::errln(x); //print line to error output
+System::err(x); //print to error output without newline
+System::writeToFile(path, contents, format); //writes contents to path with format 'a = "append", w = "write"'
 ```
 
 **Math**
 
-the math class contains a few `shared` functions for doing math
+the math object contains a few `shared` functions for doing math
 ```js
-Math.round(a);
-Math.floor(a);
-Math.min(a, b);
-Math.max(a, b);
-Math.abs(a);
-Math.sqrt(a);
+Math::round(a);
+Math::floor(a);
+Math::min(a, b);
+Math::max(a, b);
+Math::abs(a);
+Math::sqrt(a);
 //pow function defined by ** operator
 ```
 
 **Object**
 
-by default in jlox+, all classes derive from `Object`.
+by default in jlox+, all objects derive from `Object`.
 
 *Methods*
 
 - `toString()` which by default prints `Lox.Object$<object-type>`.
 ```js
-toString(){
+method toString(){
   return "Lox.Object$"+type;
 }
 ```
-- `typeof(other)` returns true if the objects are the same type
-```js
-var x = Object();
-var y = System();
-x.typeof(y); //false
-x.typeof(Object); //true
-```
 - `fields()` returns a LoxMap containing the fields of said object
 ```js
-var x = System();
-var fields = x.fields();
+mut x = System();
+mut fields = x.fields();
 //loop through map
 ```
 
@@ -249,10 +352,10 @@ indexOf(a);
 remove(i);
 
 //Example
-var x = List();
+mut x = List();
 x.add("item");
 x.get(0);
-var index = x.indexOf("item");
+mut index = x.indexOf("item");
 x.remove(0);
 ```
 
@@ -267,62 +370,33 @@ keys();
 values();
 
 //Example
-var map = Map();
+mut map = Map();
 map.put("item", 0);
 map.put("item2", Object());
 
-var obj = map.get("item2");
-var keyList = map.keys();
-var valueList = map.values();
+mut obj = map.get("item2");
+mut keyList = map.keys();
+mut valueList = map.values();
 ```
 
 **Color**
 
-simple color class, rgba
+simple color object, rgba
 ```js
 //fields
-var r = 0;
-var g = 0;
-var b = 0;
-var a = 0;
+mut r = 0;
+mut g = 0;
+mut b = 0;
+mut a = 0;
 
-Color.red();
-Color.green();
-Color.blue();
-Color.black();
-Color.white();
+Color::red();
+Color::green();
+Color::blue();
+Color::black();
+Color::white();
 
-Color().set(r, g, b);
-Color().setAlpha(a);
-```
-
-# Native Functions
-jlox+ has many built-in functions for stuff like reading and writing
-
-**The 'println' and 'print' functions take the place of the Lox 'print' statement**
-
-
-```js
-//Returns the next string typed by the user
-readLine();
-
-//Returns the next number entered by the user
-readNum();
-
-//Returns the next boolean entered by the user
-readBool();
-
-//Returns the text contents of the given file
-scanFile(filePath);
-
-//Prints the given expression without a linebreak at the end
-print(expression);
-
-//Prints the given expression with a linebreak at the end
-println(expression);
-
-//Error logs the given expression with a linebreak at the end
-error(expression);
+new Color().set(r, g, b);
+new Color().setAlpha(a);
 ```
 
 # TODO
