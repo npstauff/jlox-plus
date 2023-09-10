@@ -71,7 +71,7 @@ abstract class Stmt {
     final Expr expression;
   }
   static class Function extends Stmt {
-    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody) {
+    Function(Token name, Token extClass, List<Token> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator) {
       this.name = name;
       this.extClass = extClass;
       this.params = params;
@@ -79,6 +79,7 @@ abstract class Stmt {
       this.isStatic = isStatic;
       this.isConstant = isConstant;
       this.hasBody = hasBody;
+      this.isoperator = isoperator;
     }
 
     @Override
@@ -89,10 +90,11 @@ abstract class Stmt {
     final Token name;
     final Token extClass;
     final List<Token> params;
-    List<Stmt> body;
+    public List<Stmt> body;
     final boolean isStatic;
     final boolean isConstant;
     final Boolean hasBody;
+    final Boolean isoperator;
   }
   static class If extends Stmt {
     If(Expr condition, Stmt thenBranch, Stmt elseBranch) {

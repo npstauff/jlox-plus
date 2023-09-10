@@ -156,6 +156,10 @@ public class Parser {
           advance();
           methods.add(function("method"));
         }
+        else if(check(OPERATOR)){
+          advance();
+          methods.add(function("operator method"));
+        }
       }
 
       consume(RIGHT_BRACE, "Expect '}' after class body");
@@ -225,6 +229,10 @@ public class Parser {
         else if(check(METHOD)){
           advance();
           methods.add(funcTemplate("method"));
+        }
+        else if(check(OPERATOR)){
+          advance();
+          methods.add(funcTemplate("operator"));
         }
       }
 
@@ -319,7 +327,7 @@ public class Parser {
         body = block();
       }
 
-      return new FunctionTemplate(name, params, kind.equals("static"), kind.equals("const"), hasBody, body);
+      return new FunctionTemplate(name, params, kind.equals("static"), kind.equals("const"), hasBody, body, kind.equals("operator"));
     }
 
     private Stmt.Function function(String kind){
@@ -351,7 +359,7 @@ public class Parser {
         body = block();
       }
       
-      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"), hasBody);
+      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"), hasBody, kind.equals("operator method"));
     }
 
     private Stmt varDeclaration(boolean constant, boolean isStatic){

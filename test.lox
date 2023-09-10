@@ -1,9 +1,7 @@
-interface ITest {
-    method itest();
-}
+object Obj {
+    mut x = 0;
 
-object Test -> ITest {
-    method itest() {}
+    method setX(y) {
+        this.x = y;
+    }
 }
-
-new Test().itest();

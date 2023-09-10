@@ -86,7 +86,7 @@ public class LoxClass implements LoxCallable{
     return null;
   }
 
-  void set(String name, Object value){
+  Field set(String name, Object value){
     boolean constant = false;
     boolean isstatic = false;
     boolean pointer = false;
@@ -100,7 +100,9 @@ public class LoxClass implements LoxCallable{
     } 
     else if(methods.containsKey(name)){
       constant = methods.get(name).isConstant;
-      fields.put(name, new Field(value, constant, methods.get(name).isStatic, false));
+      Field f = new Field(value, constant, methods.get(name).isStatic, false);
+      fields.put(name, f);
+      return f;
     }
 
     if(superClass != null){
@@ -108,27 +110,28 @@ public class LoxClass implements LoxCallable{
         superClass.set(name, value);
       } 
       else{
-        put(name, value, constant, isstatic, pointer);
+        return put(name, value, constant, isstatic, pointer);
       }
     }
-    else{
-      put(name, value, constant, isstatic, pointer);
-    }
+    
+    return put(name, value, constant, isstatic, pointer);
   }
 
-  void put(String name, Object value, boolean constant, boolean isstatic, boolean pointer){
+  Field put(String name, Object value, boolean constant, boolean isstatic, boolean pointer){
+    Field newf = new Field(value, constant, isstatic, pointer);
     if(fields.containsKey(name)){
-      Field f = fields.get(name);
+      Field f = fields.get(name);    
       if(f.constant){
         throw new RuntimeError(new Token(TokenType.VAR, "name", f.value, 0), "Cant assign to constant '" + name +"'");
       }
       else{
-        fields.put(name, new Field(value, constant, isstatic, pointer));
+        fields.put(name, newf);
       }
     }
     else{
-      fields.put(name, new Field(value, constant, isstatic, pointer));
+      fields.put(name, newf);
     }
+    return newf;
   }
 
   @Override

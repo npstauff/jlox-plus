@@ -11,8 +11,9 @@ public class LoxFunction implements LoxCallable{
   final boolean isStatic;
   final boolean isConstant;
   public boolean global = true;
+  public boolean isoperator = false;
 
-  LoxFunction(Stmt.Function declaration, Environment environment, boolean isInitializer, boolean isStatic, boolean isConstant) {
+  LoxFunction(Stmt.Function declaration, Environment environment, boolean isInitializer, boolean isStatic, boolean isConstant, boolean isoperator) {
     this.declaration = declaration;
     this.closure = environment;
     this.isInitializer = isInitializer;
@@ -20,6 +21,7 @@ public class LoxFunction implements LoxCallable{
     this.callable = null;
     this.isStatic = isStatic;
     this.isConstant = isConstant;
+    this.isoperator = isoperator;
   }
 
   public LoxFunction(LoxCallable loxCallable, Environment environment, boolean isInitializer, boolean isStatic, boolean isConstant) {
@@ -55,7 +57,7 @@ public class LoxFunction implements LoxCallable{
   LoxFunction bind(LoxInstance instance){
     Environment environment = new Environment(closure);
     environment.define("this", instance, false, false, false);
-    if(!isNative) return new LoxFunction(declaration, environment, isInitializer, isStatic, isConstant);
+    if(!isNative) return new LoxFunction(declaration, environment, isInitializer, isStatic, isConstant, isoperator);
     else return new LoxFunction(callable, environment, isInitializer, isStatic, isConstant);
   }
 
@@ -65,6 +67,7 @@ public class LoxFunction implements LoxCallable{
   }
 
   public boolean inEnv(Interpreter intp){
+    if(declaration == null) return false;
     for(int i = 0; i < intp.environment.values.size(); i++){
       if(intp.environment.values.keySet().toArray()[i].equals(declaration.name.lexeme)){
         return true;
@@ -73,8 +76,20 @@ public class LoxFunction implements LoxCallable{
     return false;
   }
 
+  public Object callFunction(Interpreter interpreter, List<Object> arguments, boolean operatorCall) {
+    if(isoperator && !operatorCall) {
+      throw new RuntimeError(declaration.name, "Operator method '" + declaration.name.lexeme + "' must be called by an operator");
+    }
+    else if (!isoperator && operatorCall) {
+      throw new RuntimeError(declaration.name, "Method '" + declaration.name.lexeme + "' must be an operator method");
+    }
+    return call(interpreter, arguments);
+  }
+
   @Override
   public Object call(Interpreter interpreter, List<Object> arguments) {
+    
+
     global = inEnv(interpreter);
     if(isNative){
       return callable.call(interpreter, arguments);

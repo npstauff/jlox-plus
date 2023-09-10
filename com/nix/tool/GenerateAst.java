@@ -34,7 +34,7 @@ public class GenerateAst {
                   " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase",
         "Expression : Expr expression",
         "Function   : Token name, Token extClass, List<Token> params," +
-                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody",
+                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator",
         "If         : Expr condition, Stmt thenBranch," +
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",

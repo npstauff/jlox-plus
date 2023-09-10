@@ -49,6 +49,7 @@ public class Scanner {
     keywords.put("case",  TokenType.CASE);
     keywords.put("default",  TokenType.DEFAULT);
     keywords.put("break",  TokenType.BREAK);
+    keywords.put("operator",  TokenType.OPERATOR);
     //keywords.put("continue",  TokenType.CONTINUE);
   }
 

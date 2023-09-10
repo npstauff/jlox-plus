@@ -6,7 +6,7 @@ import java.util.HashMap;
 
 public class LoxInstance {
   LoxClass klass;
-  //private final Map<String, Object> fields = new HashMap<>();
+  private final Map<String, Object> fields = new HashMap<>();
   private final Interpreter interpreter;
 
   LoxInstance(LoxClass klass, Interpreter interpreter) {
@@ -15,25 +15,39 @@ public class LoxInstance {
   }
 
   Object get(Token name, boolean staticGet){
-    if(klass.findField(name.lexeme, staticGet) != null){
-      return klass.findField(name.lexeme, staticGet);
+    return get(name.lexeme, staticGet, "Undefined property '" + name.lexeme + "'");
+  }
+
+  Object get(String name, boolean staticGet){
+    return get(name, staticGet, "Undefined property '" + name + "'");
+  }
+
+  Object get(String name, boolean staticGet, String message){
+    if(staticGet) {
+      if(klass.findField(name, staticGet) != null){
+        return klass.findField(name, staticGet);
+      }
+    }
+    else{
+      if(fields.containsKey(name)){
+        return fields.get(name);
+      }
     }
 
-    LoxFunction method = klass.findMethod(name.lexeme, staticGet);
+    LoxFunction method = klass.findMethod(name, staticGet);
     if(method != null) return method.bind(this);
 
-    throw new RuntimeError(name, "Undefined property " + name.lexeme);
+    throw new RuntimeError(new Token(TokenType.NIL, name, method, 0), message);
   }
 
   void set(Token name, Object value){
-    //fields.put(name.lexeme, value);
-    klass.set(name.lexeme, value);
+    set(name.lexeme, value);
   }
 
   
   void set(String name, Object value){
-    //fields.put(name.lexeme, value);
-    klass.set(name, value);
+    //fields.put(name, value);
+    fields.put(name, klass.set(name, value).value);
   }
 
   @Override

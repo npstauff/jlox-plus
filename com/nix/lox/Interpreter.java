@@ -77,6 +77,51 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   }
 
+  public String methodNameFromOperator(TokenType operator) {
+    switch(operator){
+      case BANG_EQUAL: return "notEqual";
+      case EQUAL_EQUAL: return "equal";
+      case GREATER: return "greater";
+      case GREATER_EQUAL: return "greaterEqual";
+      case LESS: return "less";
+      case LESS_EQUAL: return "lessEqual";
+      case MINUS: return "subtract";
+      case PLUS: return "add";
+      case SLASH: return "divide";
+      case STAR: return "multiply";
+      case NULL_EQUAL: return "nullNotEqual";
+      case NULL_EQUAL_EQUAL: return "nullEqual";
+      default: return null;
+    }
+  }
+
+  Object callOperator(Object left, Object right, boolean leftInst, boolean rightInst, String methodName, Token operator) {
+        Object methodObj = null;
+        if(leftInst){
+          methodObj = ((LoxInstance)left).get(methodName, false, "Operator '" + methodName + "' not found on object '" + ((LoxInstance)left).klass.name + "'");
+        }
+        else if(rightInst){
+          methodObj = ((LoxInstance)right).get(methodName, false, "Operator '" + methodName + "' not found on object '"  + ((LoxInstance)right).klass.name + "'");
+        }
+        if(methodObj != null) {
+          if(methodObj instanceof LoxFunction){
+            LoxFunction method = (LoxFunction)methodObj;
+            if(method.arity() != 2) {
+              throw new RuntimeError(operator, "Operator '" + methodName + "' must take two arguments");
+            }
+            List<Object> args = new ArrayList<>();
+            args.add(leftInst ? (LoxInstance)left : left);
+            args.add(rightInst ? (LoxInstance)right : right);
+            return method.callFunction(this, args, true);
+          }
+          else{
+            String name = leftInst ? ((LoxInstance)left).klass.name : ((LoxInstance)right).klass.name;
+            throw new RuntimeError(operator, "Object '"+name+"' must implement operator '" + methodName + "' ");
+          }
+        }
+        return null;
+  }
+
   @Override
   public Object visitBinaryExpr(Binary expr) {
     Object left = evaluate(expr.left);
@@ -88,6 +133,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     if(right instanceof Integer){
       right = (Integer)right+0.0;
     }
+
+    String methodName = methodNameFromOperator(expr.operator.type);
+    if(left instanceof LoxInstance && right instanceof LoxInstance){
+      LoxInstance leftInstance = (LoxInstance)left;
+      LoxInstance rightInstance = (LoxInstance)right;
+
+      if(leftInstance.klass.name.equals(rightInstance.klass.name)){
+        return callOperator(left, right, true, true, methodName, expr.operator);
+      }
+    }
+    else if (left instanceof LoxInstance && !(right instanceof LoxInstance)){
+      return callOperator(left, right, true, false, methodName, expr.operator);
+    }
+    else if (right instanceof LoxInstance && !(left instanceof LoxInstance)){
+      return callOperator(left, right, false, true, methodName, expr.operator);
+    } 
 
     switch(expr.operator.type){
         case NULL_EQUAL:{
@@ -131,20 +192,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           if (left instanceof Double && right instanceof Double) {
             return (double)left + (double)right;
           } 
-          else if (left instanceof String && right instanceof String) {
-            return (String)left + (String)right;
+          else {
+            return left.toString() + right.toString();
           }
-          else{
-            String str = "";
-            if(left != null){
-              str += left.toString();
-            }
-            if(right != null){
-              str += right.toString();
-            }
-            return str;
-          }
-
           case SLASH:
           checkNumberOperands(expr.operator, left, right);
           return (double)left / (double)right;
@@ -521,6 +571,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       throw new RuntimeError(expr.paren, "Can only call functions and class constructors");
     }
 
+    // if(callee instanceof LoxInstance) {
+    //   LoxInstance instance = (LoxInstance)callee;
+    //   for(int i = 0; i < instance.klass.fields.keySet().size(); i++) {
+    //     String key = (String)instance.klass.fields.keySet().toArray()[i];
+    //     Object value = instance.klass.fields.get(key).value;
+    //   }
+    // }
+
     LoxCallable function = (LoxCallable)callee;
     if(arguments.size() != function.arity()){
       throw new RuntimeError(expr.paren, "Expected " +
@@ -528,13 +586,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           arguments.size() + ".");
     }
 
+    if(function instanceof LoxFunction) {
+      return ((LoxFunction)function).callFunction(this, arguments, false);
+    }
 
     return function.call(this, arguments);
   }
 
   @Override
   public Void visitFunctionStmt(Function stmt) {
-    LoxFunction function = new LoxFunction(stmt, environment, false, stmt.isStatic, stmt.isConstant);
+    LoxFunction function = new LoxFunction(stmt, environment, false, stmt.isStatic, stmt.isConstant, false);
     if(stmt.extClass == null) {
       environment.define(stmt.name.lexeme, function, function.isConstant, function.isStatic, false);
     }
@@ -545,11 +606,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           ((LoxClass)var).methods.put(stmt.name.lexeme, function);
         }
         else{
-          throw new RuntimeError(stmt.name, "Cannot extend non-class");
+          throw new RuntimeError(stmt.name, "Cannot extend non-class '" + stmt.extClass.lexeme + "'");
         }
       }
       else{
-        throw new RuntimeError(stmt.name, "Cannot extend non-class");
+        throw new RuntimeError(stmt.name, "Cannot extend unknown object '" + stmt.extClass.lexeme + "'");
       }
     }
 
@@ -609,7 +670,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           throw new RuntimeError(stmt.name, "Can't call abstract method '"+method.name.lexeme+"' from object '"+stmt.name.lexeme+"' because there no matching interface functions");
         }
       }
-      LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant);
+      LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant, method.isoperator);
       function.global = false;
       methods.put(method.name.lexeme, function);
     }
@@ -868,14 +929,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object object = evaluate(expr.object);
 
     if(!(object instanceof LoxInstance)){
-      if(object instanceof LoxClass){
-        Object value = evaluate(expr.value);
-        ((LoxClass)object).set(expr.name.lexeme, value);
-        return value;
-      }
-      else{
-        throw new RuntimeError(expr.name, "Only instances have fields");
-      }
+      throw new RuntimeError(expr.name, "Only instances have fields");
     }
 
     Object value = evaluate(expr.value);
