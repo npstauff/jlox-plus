@@ -29,7 +29,7 @@ public class Environment {
   }
 
   void define(String name, Object value, boolean constant, boolean stat, boolean ptr, LoxType type){
-    if(new LoxType(value).type != type.type) {
+    if(value != null && new LoxType(value).type != type.type) {
       throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", value, 0), "Cant assign value of type '" + new LoxType(value).type + "' to variable '"+name+"' of type '" + type.type + "'");
     }
     put(name, new Field(value, constant, stat, ptr, type));

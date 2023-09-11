@@ -46,7 +46,7 @@ public class GenerateAst {
         "Test      : Expr name, Stmt body",
         "GetFile     : Token name, Expr path",
         "Module    : Token keyword",
-        "Interface : Token name, List<FunctionTemplate> methods, List<VarTemplate> variables",
+        "Interface : Token name, List<Stmt.Function> methods, List<Stmt.Var> variables",
         "Enum : Token name, List<LoxEnum.Element> elements",
         "Switch : Expr value, List<Stmt.Case> cases, Stmt.Case defaultCase",
         "Case: Expr value, Stmt body",

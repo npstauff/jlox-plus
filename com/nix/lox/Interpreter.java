@@ -1,9 +1,13 @@
 package com.nix.lox;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -638,6 +642,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     throw new com.nix.lox.Return(value);
   }
 
+  public void checkParameters(Stmt.Function func, Stmt.Function template) {
+    if(func.params.size() != template.params.size()){
+      throw new RuntimeError(func.name, "Function '"+func.name.lexeme+"' must match the method signature of interface '"+template.name.lexeme+"', method: '"+template.name.lexeme+"'");
+    }
+    for(int i = 0; i < func.params.size(); i++) {
+      if(func.params.get(i).type.type != template.params.get(i).type.type){
+        throw new RuntimeError(func.name, "Function '"+func.name.lexeme+"' must match the type signature of parameter '"+template.params.get(i).name.lexeme+"', "
+        + "method: '"+template.name.lexeme+"', " + "expected: " + template.params.get(i).type.name + ", got: " + func.params.get(i).type.name);
+      }
+    }
+  }
+
   @Override
   public Void visitClassStmt(Class stmt) {
     Object superclass = null;
@@ -662,8 +678,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Map<String, LoxFunction> methods = new HashMap<>();
     Map<String, Field> fields = new HashMap<>();
     for(Stmt.Function method : stmt.methods) {
+      Stmt.Function func = findFunctionOnInterfaces(stmt.interfase, method.name.lexeme);
       if(!method.hasBody){
-        FunctionTemplate func = findFunctionOnInterfaces(stmt.interfase, method.name.lexeme);
         if(func != null){
           if(!func.hasBody){
             throw new RuntimeError(stmt.name, "Can't call abstract method '"+func.name.lexeme+"' from object '"+stmt.name.lexeme+"' because the matching interface function does not declare a body");
@@ -674,17 +690,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           if(func.isStatic != method.isStatic){
             throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
           }
-          if(func.params.size() != method.params.size()){
-            throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the method signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
-          }
-          method.body = func.body;
+          //method.body = func.body;
         }
         else{
           throw new RuntimeError(stmt.name, "Can't call abstract method '"+method.name.lexeme+"' from object '"+stmt.name.lexeme+"' because there no matching interface functions");
         }
       }
+      checkParameters(method, func);
+      if(method.returnType.type != func.returnType.type){
+            throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the return signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
+          }
       LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant, method.isoperator, method.returnType);
-      function.global = false;
       methods.put(method.name.lexeme, function);
     }
     for (Stmt.Var var : stmt.variables) {
@@ -710,7 +726,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         if(inter != null){
-          for(FunctionTemplate name : inter.methods.values()){
+          for(Stmt.Function name : inter.methods.values()){
             if(!methods.containsKey(name.name.lexeme)){
               throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must implement all methods of interface '"+inter.name+"', method: '"+name.name.lexeme+"'");
             }
@@ -728,7 +744,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
               }
             }
           }
-          for(VarTemplate name : inter.fields.values()){
+          for(Stmt.Var name : inter.fields.values()){
             if(!fields.containsKey(name.name.lexeme)){
               throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must implement all fields of interface '"+inter.name+"', field: '"+name.name.lexeme+"'");
             }
@@ -763,7 +779,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     return null;
   }
 
-  public FunctionTemplate findFunctionOnInterfaces(List<Token> interfaces, String name){
+  public static <T> T deepClone(T object) {
+      try {
+          ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+          ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+          objectOutputStream.writeObject(object);
+          ByteArrayInputStream bais = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+          ObjectInputStream objectInputStream = new ObjectInputStream(bais);
+            return (T)objectInputStream.readObject();
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        return null;
+      }
+  }
+
+  public Stmt.Function findFunctionOnInterfaces(List<Token> interfaces, String name){
     for(Token interfaseToken : interfaces) {
       Object interfaseValue = null;
       if(interfaces != null){
@@ -777,7 +808,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       }
 
       if(inter != null){
-        for(FunctionTemplate func : inter.methods.values()){
+        for(Stmt.Function func : inter.methods.values()){
           if(func.name.lexeme.equals(name)){
             return func;
           }
@@ -793,13 +824,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     environment = new Environment(environment);
 
-    Map<String, FunctionTemplate> methods = new HashMap<>();
-    Map<String, VarTemplate> fields = new HashMap<>();
-    for(FunctionTemplate method : inter.methods) {
+    Map<String, Stmt.Function> methods = new HashMap<>();
+    Map<String, Stmt.Var> fields = new HashMap<>();
+    for(Stmt.Function method : inter.methods) {
       methods.put(method.name.lexeme, method);
       //System.out.println("Interface: " + inter.name.lexeme + ", Method: " + method.name.lexeme + ", isStatic: " + method.isStatic + ", isConstant: " + method.isConstant);
     }
-    for (VarTemplate var : inter.variables) {
+    for (Stmt.Var var : inter.variables) {
       fields.put(var.name.lexeme, var);
       //System.out.println("Interface: " + inter.name.lexeme + ", Var: " + var.name.lexeme + ", isStatic: " + var.isStatic + ", isConstant: " + var.isConstant);
     }

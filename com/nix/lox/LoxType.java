@@ -51,8 +51,6 @@ public class LoxType {
             this.type = TypeEnum.NUMBER;
         else if(value instanceof Boolean)
             this.type = TypeEnum.BOOLEAN;
-        else if(value == null)
-            this.type = TypeEnum.VOID;
         else
             this.type = TypeEnum.OBJECT;
     }

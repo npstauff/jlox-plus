@@ -318,8 +318,8 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     define(stmt.name);
 
     beginScope();
-    for(FunctionTemplate func : stmt.methods){
-      resolveFuncTemplate(func);
+    for(Stmt.Function func : stmt.methods){
+      resolveFunction(func, FunctionType.METHOD);
     }
     endScope();
 
@@ -352,9 +352,9 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
 
   private void resolveFuncTemplate(FunctionTemplate template) {
     beginScope();
-    for(Token param : template.params){
-      declare(param);
-      define(param);
+    for(Parameter param : template.params){
+      declare(param.name);
+      define(param.name);
     }
     endScope();
   }

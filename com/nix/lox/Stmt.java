@@ -235,7 +235,7 @@ abstract class Stmt {
     final Token keyword;
   }
   static class Interface extends Stmt {
-    Interface(Token name, List<FunctionTemplate> methods, List<VarTemplate> variables) {
+    Interface(Token name, List<Stmt.Function> methods, List<Stmt.Var> variables) {
       this.name = name;
       this.methods = methods;
       this.variables = variables;
@@ -247,8 +247,8 @@ abstract class Stmt {
     }
 
     final Token name;
-    final List<FunctionTemplate> methods;
-    final List<VarTemplate> variables;
+    final List<Stmt.Function> methods;
+    final List<Stmt.Var> variables;
   }
   static class Enum extends Stmt {
     Enum(Token name, List<LoxEnum.Element> elements) {
