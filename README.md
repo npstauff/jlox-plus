@@ -44,17 +44,36 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 | null-safe assign      | x ?= y | assigns `y` to x only if `x` != `nil` and `y` != `nil`, otherwise just return nil |
 | null-safe check      | x ?? y | returns `x` unless its `nil` otherwise it returns `y`|
 
-mutables
+| Primitive Types         | example |  meaning|
+|--------------|:-----:|-----------:|
+| num | num x = 10; | a number variable |
+| string | string x = "Hello world!"; | a string variable |
+| bool | bool x = true; | a boolean variable |
+| void | void x = nil; | assigns a  `nil` variable, mostly only useful for function return types |
+
+| Object Types (obj)        | example |  meaning|
+|--------------|:-----:|-----------:|
+| obj [Type] | obj Test testObj = new Test(); | an object variable of type [Type] variable |
+| obj func | obj func ptr = myFunc; | a pointer to a function |
+
+variable
 ---
-mutables in lox are dynamic, and can be assigned as either fixed, mutable, or shared
+variables in lox must match a built in or object type, and can be fixed and shared
 
 ```js
-mut x = 5;
-fixed x = 5;
+object Test {}
+
+func testFunc() -> void {}
+
+num x = 10;
+string y = "hello";
+bool z = true;
+obj Test testObj = new Test();
+obj func funcPointer = testFunc;
 ```
 Assigning mutables works as expected, with added support for postfix increments and decrements
 ```js
-mut x = 10;
+num x = 10;
 x += 5;
 x -= 5;
 x *= 5;
@@ -64,13 +83,13 @@ x--;
 ```
 jlox+ also supports the power operator
 ```js
-mut x = 5;
+num x = 5;
 x ** 2;
 //Result: 25
 ```
 fixeds work the same, except that they can't be reassigned
 ```js
-fixed x = 5;
+fixed num x = 5;
 x = 6;
 //Will throw error
 ```
@@ -78,7 +97,7 @@ Control Flow
 ---
 Control flow in lox is similar to languages like C or Java
 ```js
-mut x = 5;
+num x = 5;
 if(x == 5){
   System::println(x);
 }
@@ -88,21 +107,21 @@ else{
 ```
 jlox+ also supports while and for loops.
 ```js
-mut x = 5;
+num x = 5;
 while(x != 10){
  System::println("not ten");
 }
 ```
 ```js
-for(mut i = 0; i < 10; i++){
+for(num i = 0; i < 10; i++){
   System::println("I: " + i);
 }
 ```
 functions
 ---
-functions are defined with the `func` keyword and can have local fixeds and mutables
+functions are defined with the `func` keyword and can have local fixeds and variables, the return type is specified with the `interface implementation` operator
 ```kotlin
-func helloWorld(message){
+func helloWorld(string message) -> void{
   System::println("Hello, " + message);
 }
 ```
@@ -119,27 +138,27 @@ fixedructers are defined by making an `constructor()` method.
 instances are created by usin the `new` or `spawn` keywords and passing the parameters for its `constructor()` method.
 ```js
 object Program{
-  mut x = 0;
-  fixed y = 0;
+  num x = 0;
+  fixed num y = 0;
   
-  init(){
+  method constructor() -> void{
     //do something
   }
 }
 
 object App <- Program{
-  method constructor(){
+  method constructor() -> void{
     super.contructor();
     this.x = 10;
   }
 
-  method sayHi() {
+  method sayHi() -> void {
     System::println("hi");
   }
 }
 
-mut y = new Program();
-mut x = spawn App();
+obj Program y = new Program();
+obj App x = spawn App();
 ```
 mutables in objects must be initialized immediatly. Fields can be added on the fly with the `.` operator 
 # Jlox+ features
@@ -152,8 +171,8 @@ Calling `shared` methods and mutables
 To call a shared method or mutable, use the `scope resolution operator`
 ```js
 object TestObj {
-  shared mut x = 10;
-  shared method testMethod () {}
+  shared num x = 10;
+  shared method testMethod () -> void {}
 }
 
 TestObj::x; //10
@@ -167,6 +186,7 @@ Control Flow
 ---
 I added a new type of loop, although I dont know how useful it really is. When statements execute their block until the condition evaluates to FALSE, and then they execute their do block.
 ```c#
+num x = 3;
 when(x > 5){
   //runs until x > 5
   x++;
@@ -177,7 +197,7 @@ when(x > 5){
 ```
 Switch statements are in jlox+, with default case supported
 ```c#
-mut x = 10;
+num x = 10;
 switch (x) {
   case (5) {
     System::println("x is 5");
@@ -202,11 +222,11 @@ Interfaces
 In jlox+, interfaces are built with the `interface` keyword. Any fields or methods defined in an interface must be fully implemented in any extending class including modifiers and parameters. Objects can extend interfaces with the `->` operator. This works along with inheritance, i.e `object ObjTwo <- ObjOne -> MyInterface`
 ```c#
 interface ITest {
-  mut x;
-  mut y;
+  num x;
+  num y;
 
-  method imethod(x);
-  method method2(y, z);
+  method imethod(num x) ;
+  method method2(num y, num z);
 }
 ```
 Interface functions can be defined with a body, to be used for default implementation. If you end a function with a semicolon, either in a class or an interface, it marks it as abstract. If a method is abstract in a class, it looks in its interfaces to see if there is a matching non-abstract function to fufill its default implementation.
