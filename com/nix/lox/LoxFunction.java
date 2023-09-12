@@ -5,7 +5,7 @@ import java.util.List;
 import com.nix.lox.LoxType.TypeEnum;
 
 public class LoxFunction implements LoxCallable{
-  private final Stmt.Function declaration;
+  public final Stmt.Function declaration;
   private final Environment closure;
   private final boolean isInitializer;
   private final boolean isNative;
@@ -95,59 +95,13 @@ public class LoxFunction implements LoxCallable{
 
   public void checkParameters(List<Object> arguments){
     for(int i = 0; i < arguments.size(); i++) {
-      switch(declaration.params.get(i).type.type) {
-        case NUMBER: {
-          if(!(arguments.get(i) instanceof Double)) {
-            throw new RuntimeError(declaration.params.get(i).name, "Expected type number for function '" + declaration.name.lexeme + "' parameter " + (i + 1));
-          }
-          break;
-        }
-
-        case STRING: {
-          if(!(arguments.get(i) instanceof String)) {
-            throw new RuntimeError(declaration.params.get(i).name, "Expected type string for function '" + declaration.name.lexeme + "' parameter " + (i + 1));
-          }
-          break;
-        }
-
-        case BOOLEAN: {
-          if(!(arguments.get(i) instanceof Boolean)) {
-            throw new RuntimeError(declaration.params.get(i).name, "Expected type boolean for function '" + declaration.name.lexeme + "' parameter " + (i + 1));
-          }
-          break;
-        }
-
-        default: {
-            if(arguments.get(i) instanceof LoxInstance) {
-              if(((LoxInstance)arguments.get(i)).klass.name.equals(declaration.params.get(i).type.name)) {
-                break;
-              }
-              else {
-                throw new RuntimeError(declaration.params.get(i).name, "Expected type '"+ declaration.params.get(i).type.name +"' for function '" + declaration.name.lexeme + "' parameter " + (i + 1) + " got '" + new LoxType(arguments.get(i)).type + "'");
-              }
-            }
-            else if (arguments.get(i) instanceof LoxClass) {
-              if(((LoxClass)arguments.get(i)).name.equals(declaration.params.get(i).type.name)) {
-                break;
-              }
-              else {
-                throw new RuntimeError(declaration.params.get(i).name, "Expected type '"+ declaration.params.get(i).type.name +"' for function '" + declaration.name.lexeme + "' parameter " + (i + 1) + " got '" + new LoxType(arguments.get(i)).type + "'");
-              }
-            }
-            else if(arguments.get(i) instanceof LoxFunction) {
-              LoxFunction func = (LoxFunction)arguments.get(i);
-              LoxType type = new LoxType(func);
-              LoxType paramType = declaration.params.get(i).type;
-              if(type.type == paramType.type){
-                break;
-              }
-
-              throw new RuntimeError(declaration.params.get(i).name, "Expected function type '"+ declaration.params.get(i).type.name +"' for function '" + declaration.name.lexeme + "' parameter " + (i + 1) + " got '" + new LoxType(arguments.get(i)).type + "'");
-            }
-            else {
-              throw new RuntimeError(declaration.params.get(i).name, "Expected type '"+ declaration.params.get(i).type.name +"' for function '" + declaration.name.lexeme + "' parameter " + (i + 1) + " got '" + new LoxType(arguments.get(i)).type + "'");
-            }
-        }
+      LoxType argType = new LoxType(arguments.get(i));
+      LoxType paramType = declaration.params.get(i).type;
+      if(argType.matches(paramType)) {
+        continue;
+      }
+      else{
+        throw new RuntimeError(declaration.name, "Expected type '" + paramType.type + "' for parameter '" + declaration.params.get(i).name.lexeme + "' of function '" + declaration.name.lexeme + "' but got type '" + argType.type + "' instead");
       }
     }
   }
@@ -182,7 +136,7 @@ public class LoxFunction implements LoxCallable{
     try{
       interpreter.executeBlock(declaration.body, environment);
     } catch (Return returnValue){
-      if(new LoxType(returnValue.value).type != returnType.type) throw new RuntimeError(declaration.name, "Expected type '" + returnType.type + "' for function '" + declaration.name.lexeme + "' return value" );
+      if(!(new LoxType(returnValue.value).matches(returnType))) throw new RuntimeError(declaration.name, "Expected type '" + returnType.type + "' for function '" + declaration.name.lexeme + "' return value" );
 
       if (isInitializer) return closure.getAt(0, "this");
 

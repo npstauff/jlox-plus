@@ -8,8 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import sun.misc.Unsafe;
-
 public class Lox{
   private static Interpreter interpreter = new Interpreter();
   static boolean hadError = false;

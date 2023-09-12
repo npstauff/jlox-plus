@@ -56,6 +56,7 @@ public class Scanner {
     keywords.put("void",  TokenType.VOID);
     keywords.put("obj",  TokenType.OBJPARAM);
     keywords.put("typeof",  TokenType.TYPEOF);
+    keywords.put("is",  TokenType.IS);
     //keywords.put("continue",  TokenType.CONTINUE);
   }
 

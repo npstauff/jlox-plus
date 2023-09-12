@@ -22,7 +22,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
-  private boolean inTest = false;
 
   private enum ClassType {
     NONE,
@@ -348,15 +347,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     if(stmt.value != null) resolve(stmt.value);
     resolve(stmt.body);
     return null;
-  }
-
-  private void resolveFuncTemplate(FunctionTemplate template) {
-    beginScope();
-    for(Parameter param : template.params){
-      declare(param.name);
-      define(param.name);
-    }
-    endScope();
   }
 
   @Override

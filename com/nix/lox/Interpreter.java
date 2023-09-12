@@ -1,23 +1,9 @@
 package com.nix.lox;
 
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Writer;
-import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.swing.text.html.parser.Element;
-
-import sun.misc.Unsafe;
 
 import com.nix.lox.Expr.Assign;
 import com.nix.lox.Expr.Binary;
@@ -33,7 +19,6 @@ import com.nix.lox.Expr.Super;
 import com.nix.lox.Expr.This;
 import com.nix.lox.Expr.Unary;
 import com.nix.lox.Expr.Variable;
-import com.nix.lox.Expr.Visitor;
 import com.nix.lox.LoxType.TypeEnum;
 import com.nix.lox.Stmt.Block;
 import com.nix.lox.Stmt.Break;
@@ -44,7 +29,6 @@ import com.nix.lox.Stmt.Expression;
 import com.nix.lox.Stmt.Function;
 import com.nix.lox.Stmt.GetFile;
 import com.nix.lox.Stmt.If;
-import com.nix.lox.Stmt.Interface;
 import com.nix.lox.Stmt.Return;
 import com.nix.lox.Stmt.Switch;
 import com.nix.lox.Stmt.Var;
@@ -206,6 +190,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         case STAR:
           checkNumberOperands(expr.operator, left, right);
           return (double)left * (double)right;
+      default:
+        break;
         }
     return null;
   }      
@@ -232,6 +218,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case MINUS:
         checkNumberOperand(expr.operator, right);
         return -(double)right;
+      default:
+        break;
     }
 
     return null;
@@ -280,20 +268,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   void resolve(Expr expr, int depth){
     locals.put(expr, depth);
-  }
-
-  private String stringify(Object object) {
-    if (object == null) return "nil";
-
-    if (object instanceof Double) {
-      String text = object.toString();
-      if (text.endsWith(".0")) {
-        text = text.substring(0, text.length() - 2);
-      }
-      return text;
-    }
-
-    return object.toString();
   }
 
   @Override
@@ -446,6 +420,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             right = (double)(leftD / rightD);
             break;
           }
+          default:
+            break;
         }
       }
     
@@ -467,20 +443,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public boolean validAssignment(Object left, Object right){
     LoxType leftType = new LoxType(left);
     LoxType rightType = new LoxType(right);
-    if(leftType.type != rightType.type){
-      return false;
-    }
-    else{
-      if(leftType.type == TypeEnum.OBJECT){
-        if(leftType.name.equals(rightType.name)){
-          return true;
-        }
-        else{
-          return false;
-        }
-      }
-    }
-    return true;
+    return leftType.matches(rightType);
   }
 
   @Override
@@ -538,8 +501,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     if(expr.operator.type == TokenType.OR){
       if(isTruthy(left)) return left;
-    }else{
+    }else if (expr.operator.type == TokenType.AND){
       if(!isTruthy(left)) return left;
+    }
+    else if (expr.operator.type == TokenType.IS){
+      LoxType leftType = new LoxType(left);
+      LoxType rightType = new LoxType(evaluate(expr.right));
+      System.out.println(leftType.type + " " + rightType.type + " " + leftType.name + " " + rightType.name);
+      return leftType.matches(rightType);
     }
 
     return evaluate(expr.right);
@@ -647,7 +616,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       throw new RuntimeError(func.name, "Function '"+func.name.lexeme+"' must match the method signature of interface '"+template.name.lexeme+"', method: '"+template.name.lexeme+"'");
     }
     for(int i = 0; i < func.params.size(); i++) {
-      if(func.params.get(i).type.type != template.params.get(i).type.type){
+      if(!(func.params.get(i).type.matches(template.params.get(i).type))){
         throw new RuntimeError(func.name, "Function '"+func.name.lexeme+"' must match the type signature of parameter '"+template.params.get(i).name.lexeme+"', "
         + "method: '"+template.name.lexeme+"', " + "expected: " + template.params.get(i).type.name + ", got: " + func.params.get(i).type.name);
       }
@@ -697,15 +666,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
       }
       checkParameters(method, func);
-      if(method.returnType.type != func.returnType.type){
+      if(method.returnType.mismatch(func.returnType)){
             throw new RuntimeError(stmt.name, "Class '"+ stmt.name.lexeme +"' must match the return signature of interface '"+func.name.lexeme+"', method: '"+func.name.lexeme+"'");
-          }
+      }
       LoxFunction function = new LoxFunction(method, environment, false, method.isStatic, method.isConstant, method.isoperator, method.returnType);
       methods.put(method.name.lexeme, function);
     }
     for (Stmt.Var var : stmt.variables) {
       Object value = evaluate(var.initializer);
-      if(new LoxType(value).type != var.type.type){
+      if(new LoxType(value).mismatch(var.type)){
         throw new RuntimeError(var.name, "Variable '"+var.name.lexeme+"' must be of type '"+var.type.type+"'");
       }
       Field f = new Field(value, var.isConstant, var.isStatic, var.pointer, var.type);
@@ -777,21 +746,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     environment.assign(stmt.name, klass);
     return null;
-  }
-
-  public static <T> T deepClone(T object) {
-      try {
-          ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-          ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-          objectOutputStream.writeObject(object);
-          ByteArrayInputStream bais = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-          ObjectInputStream objectInputStream = new ObjectInputStream(bais);
-            return (T)objectInputStream.readObject();
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-        return null;
-      }
   }
 
   public Stmt.Function findFunctionOnInterfaces(List<Token> interfaces, String name){

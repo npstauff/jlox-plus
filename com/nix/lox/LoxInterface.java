@@ -1,6 +1,5 @@
 package com.nix.lox;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class LoxInterface {

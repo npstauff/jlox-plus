@@ -42,7 +42,23 @@ public class LoxType {
     }
 
     public LoxType(Object value) {
-        if(value != null) this.name = value.getClass().getName();
+        if(value != null){
+            if(value instanceof LoxClass) {
+                name = ((LoxClass)value).name;
+            }
+            else if (value instanceof LoxInstance) {
+                name = ((LoxInstance)value).klass.name;
+            }
+            else if(value instanceof LoxFunction) {
+                name = "func";
+            }
+            else{
+                name = value.getClass().getName();
+            }
+            if(name == null) {
+                this.name = "null";
+            }
+        } 
         else this.name = "null";
 
         if(value instanceof String)
@@ -55,4 +71,14 @@ public class LoxType {
             this.type = TypeEnum.OBJECT;
     }
 
+
+    public boolean matches(LoxType other) {
+        if(this.type == TypeEnum.OBJECT && other.type == TypeEnum.OBJECT)
+            return this.name.equals(other.name);
+        return this.type == other.type;
+    }
+
+    public boolean mismatch(LoxType other) {
+        return !matches(other);
+    }
 }

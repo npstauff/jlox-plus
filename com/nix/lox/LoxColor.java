@@ -2,14 +2,12 @@ package com.nix.lox;
 
 import java.util.List;
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.nix.lox.LoxType.TypeEnum;
 
 public class LoxColor extends LoxNative{
-  private List<Object> items = new ArrayList<Object>();
 
 
   LoxColor(Environment environment, Interpreter interpreter, LoxClass type){

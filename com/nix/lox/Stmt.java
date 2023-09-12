@@ -91,7 +91,7 @@ abstract class Stmt {
     final Token name;
     final Token extClass;
     final List<Parameter> params;
-    List<Stmt> body;
+    final List<Stmt> body;
     final boolean isStatic;
     final boolean isConstant;
     final Boolean hasBody;

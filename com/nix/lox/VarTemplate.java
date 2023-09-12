@@ -1,7 +1,5 @@
 package com.nix.lox;
 
-import java.util.List;
-
 public class VarTemplate {
     public Token name;
     public boolean isStatic, isConstant;

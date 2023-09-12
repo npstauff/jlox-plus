@@ -91,32 +91,4 @@ public class LoxObject extends LoxNative{
       }, environment, false, new LoxType(name, TypeEnum.STRING));
   }
 
-  private LoxFunction typeof(Environment environment){
-    return new LoxFunction(new LoxCallable() {
-
-      @Override
-      public int arity() {
-        return 1;
-      }
-
-      @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
-        Object o = arguments.get(0);
-        LoxClass klass = null;
-        if(o instanceof LoxClass){
-          klass = (LoxClass)o;
-        }
-        else if(o instanceof LoxInstance){
-          klass = ((LoxInstance)o).klass;
-        }
-        else{
-          throw new RuntimeError(new Token(TokenType.EOF, "null", null, 0), "typeof can only be applied to classes or instances");
-        }
-
-        return name.equals(klass.name);
-      }
-      
-    }, environment, false, new LoxType(name, TypeEnum.BOOLEAN));
-  }
-
 }

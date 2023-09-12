@@ -121,7 +121,7 @@ public class LoxClass implements LoxCallable{
   }
 
   public static void checkType(LoxType l, LoxType r){
-    if(!l.type.equals(r.type)){
+    if(!l.matches(r)){
       throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", l, 0), "Type mismatch: '" + l + "' is not a '" + r + "'");
     }
   }

@@ -2,18 +2,11 @@ package com.nix.lox;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.management.GarbageCollectorMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.print.DocFlavor.STRING;
-import javax.sound.sampled.AudioFileFormat.Type;
-
 import com.nix.lox.LoxType.TypeEnum;
-import com.nix.lox.Stmt.Var;
-import com.nix.lox.Stmt.While;
-
 import static com.nix.lox.TokenType.*;
 
 public class Parser {
@@ -22,13 +15,11 @@ public class Parser {
 
     private List<String> imports = new ArrayList<>();
     private boolean definedModule = false;
-    private final String source;
     private List<Token> tokens = new ArrayList<>();
     private int current = 0;
 
     Parser(List<Token> tokens, String source) {
       this.tokens = tokens;
-      this.source = source;
     }
 
     List<Stmt> parse(){
@@ -135,9 +126,9 @@ public class Parser {
               ptr = true;
               advance();
             }
-            Token eq = consume(EQUAL, "Expected equality");
+            consume(EQUAL, "Expected equality");
             Expr expr = expression();
-            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            consume(SEMICOLON, "Expect semicolon after variable");
             variables.add(new Stmt.Var(id, expr, false, true, ptr, type));
           }
           else if(check(METHOD)){
@@ -166,9 +157,9 @@ public class Parser {
             Token id = peek();
             advance();
             boolean ptr = false;
-            Token eq = consume(EQUAL, "Expected equality");
+            consume(EQUAL, "Expected equality");
             Expr expr = expression();
-            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            consume(SEMICOLON, "Expect semicolon after variable");
             variables.add(new Stmt.Var(id, expr, true, false, ptr,  type));
           }
           else if (match(METHOD)){
@@ -249,7 +240,7 @@ public class Parser {
               ptr = true;
               advance();
             }
-            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            consume(SEMICOLON, "Expect semicolon after variable");
             variables.add(new Stmt.Var(id, null, false, true, ptr, type));
           }
           else if(check(METHOD)){
@@ -282,7 +273,7 @@ public class Parser {
               ptr = true;
               advance();
             }
-            Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+            consume(SEMICOLON, "Expect semicolon after variable");
             variables.add(new Stmt.Var(id, null, true, false, ptr, type));
           }
           else if (match(METHOD)){
@@ -307,12 +298,10 @@ public class Parser {
 
           Token id = peek();
           advance();
-          boolean ptr = false;
           if(check(PTR)){
-            ptr = true;
             advance();
           }
-          Token semicolen = consume(SEMICOLON, "Expect semicolon after variable");
+          consume(SEMICOLON, "Expect semicolon after variable");
           variables.add(new Stmt.Var(id, null, false, false, false, type));
         }
         else if(check(METHOD)){
@@ -389,55 +378,6 @@ public class Parser {
       consume(RIGHT_BRACE, "Expect '}' after switch body");
 
       return new Stmt.Switch(id, cases, defaultCase);
-    }
-
-    private FunctionTemplate funcTemplate(String kind){
-      Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-      consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-      List<Parameter> parameters = new ArrayList<>();
-      if(!check(RIGHT_PAREN)){
-        do{
-          if(parameters.size() >= 255){
-            error(peek(), "Cant have more than 255 parameters");
-          }
-          LoxType type = new LoxType(advance());
-          if(type.type == TypeEnum.OBJECT)
-          {
-            if(peek().type == FUN) {
-              advance();
-              type.name = "func";
-            }
-            else{
-              type.name = consume(IDENTIFIER, "Expect type name after 'obj'.").lexeme;
-            }
-          }
-          Token nameParam = consume(IDENTIFIER, "Expect parameter name.");
-          parameters.add(new Parameter(nameParam, type));
-        } while (match(COMMA));
-      }
-      consume(RIGHT_PAREN, "Expect ')' after parameters");
-
-      consume(OUTARROW, "Expect '->' after parameters");
-
-      Token type = null;
-      if(checkType()) {
-        type = advance();
-      }
-      else{
-        error(peek(), "Expected return type");
-      }
-
-      boolean hasBody = true;
-      if(match(SEMICOLON)) hasBody = false;
-
-      List<Stmt> body = null;
-      if(hasBody){
-        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-        body = block();
-      }
-      
-      return new FunctionTemplate(name, parameters, kind.equals("static method"), kind.equals("const method"),
-       hasBody, body, kind.equals("operator method"), new LoxType(type));
     }
 
     private Stmt.Function function(String kind){
@@ -540,6 +480,7 @@ public class Parser {
       if(match(SWITCH)) return switchStatement();
       if(match(BREAK)) return breakStatement();
       if(match(CONTINUE)) return continueStatement();
+      
       if(match(LEFT_BRACE)) return new Stmt.Block(block());
 
       return expressionStatement();
@@ -550,7 +491,7 @@ public class Parser {
         throw error(previous(), "Module already defined");
       }
       definedModule = true;
-      Token keyword = previous();
+      previous();
       while (!check(SEMICOLON)) {
         advance();
       }
@@ -647,12 +588,13 @@ public class Parser {
 
     boolean hasModule(String module, File file){
       try {
-        java.util.Scanner scanner = new java.util.Scanner(file);
-        if(scanner.hasNextLine()){
-          String line = scanner.nextLine();
-          if(line.contains(module) && line.contains("module")){
-            scanner.close();
-            return true;
+        try (java.util.Scanner scanner = new java.util.Scanner(file)) {
+          if(scanner.hasNextLine()){
+            String line = scanner.nextLine();
+            if(line.contains(module) && line.contains("module")){
+              scanner.close();
+              return true;
+            }
           }
         }
       } catch (FileNotFoundException e) {
@@ -822,6 +764,8 @@ public class Parser {
           case SLASH_ASSIGN:
             type = AssignType.DIVIDE;
             break;
+          default:
+            break;
         }
         
         Token equals = previous();
@@ -858,9 +802,21 @@ public class Parser {
     }
 
     private Expr and(){
-      Expr expr = equality();
+      Expr expr = is();
 
       while(match(AND)){
+        Token operator = previous();
+        Expr right = is();
+        expr = new Expr.Logical(expr, operator, right);
+      }
+
+      return expr;
+    }
+
+    private Expr is() {
+      Expr expr = equality();
+
+      while(match(IS)){
         Token operator = previous();
         Expr right = equality();
         expr = new Expr.Logical(expr, operator, right);
@@ -897,20 +853,6 @@ public class Parser {
       return peek().type == type;
     }
 
-    private boolean check(TokenType... type){
-      if(isAtEnd()) return false;
-      for(int i = 0; i < type.length; i++){
-        if(peek().type == type[i]) return true;
-      }
-      return false;
-    }
-
-    private boolean checkNext(TokenType type){
-      if(isAtEnd()) return false;
-      if(current + 1 >= tokens.size() || peekNext().type == EOF) return false;
-      return peekNext().type == type;
-    }
-
     private Token advance(){
       if(!isAtEnd()) current++;
       return previous();
@@ -922,11 +864,6 @@ public class Parser {
 
     private Token peek(){
       return tokens.get(current);
-    }
-
-    private Token peekNext(){
-      if(current + 1 >= tokens.size()) return tokens.get(current);
-      return tokens.get(current + 1);
     }
 
     private Token previous(){
@@ -1103,6 +1040,8 @@ public class Parser {
           case EXPECT:
           case RETURN:
             return;
+          default:
+            break;
         }
 
         advance();
