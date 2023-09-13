@@ -71,7 +71,7 @@ bool z = true;
 obj Test testObj = new Test();
 obj func funcPointer = testFunc;
 ```
-Assigning mutables works as expected, with added support for postfix increments and decrements
+Assigning variables works as expected, with added support for postfix increments and decrements
 ```js
 num x = 10;
 x += 5;
@@ -160,15 +160,15 @@ object App <- Program{
 obj Program y = new Program();
 obj App x = spawn App();
 ```
-mutables in objects must be initialized immediatly. Fields can be added on the fly with the `.` operator 
+variables in objects must be initialized immediatly. Fields can be added on the fly with the `.` operator 
 # Jlox+ features
-mutables
+variables
 ---
-fixed objects, postfix increments and decrements. mutables declared in a object, can be fixed and shared.
+fixed objects, postfix increments and decrements. variables declared in a object, can be fixed and shared.
 
-Calling `shared` methods and mutables
+Calling `shared` methods and variables
 ---
-To call a shared method or mutable, use the `scope resolution operator`
+To call a shared method or variable, use the `scope resolution operator`
 ```js
 object TestObj {
   shared num x = 10;
@@ -232,15 +232,15 @@ interface ITest {
 Interface functions can be defined with a body, to be used for default implementation. If you end a function with a semicolon, either in a class or an interface, it marks it as abstract. If a method is abstract in a class, it looks in its interfaces to see if there is a matching non-abstract function to fufill its default implementation.
 ```c#
 interface ITest {
-  method imethod(num x); //abstract
-  method method2(num y, string z); //abstract
-  method def() { System::println("def test"); } //non-abstract
+  method imethod(num x) -> void; //abstract
+  method method2(num y, string z) -> num; //abstract
+  method def() -> void { System::println("def test"); } //non-abstract
 }
 
 object TestObj -> ITest {
-  method imethod(num x) { } //non-abstract
-  method method2(num y, string z) { } //non-abstract
-  method def(); //abstract, looks for non-abstract method in ITest
+  method imethod(num x) -> void { } //non-abstract
+  method method2(num y, string z) -> num { } //non-abstract
+  method def() -> void; //abstract, looks for non-abstract method in ITest
 }
 
 new ITest().def(); //prints 'def test'
@@ -267,21 +267,21 @@ enum MyEnum {
 ```
 Enums can be accessed with the `scope resolution` operator
 ```js
-mut x = MyEnum::ITEM; //x equals 0
-mut y = MyEnum::AFINALITEM; //y equals 2
+num x = MyEnum::ITEM; //x equals 0
+num y = MyEnum::AFINALITEM; //y equals 2
 ```
 
 Functions
 ---
 fixed functions
 ```js
-fixed func test() {}
-func two() {}
+fixed func test() -> void {}
+func two() -> void {}
 test = two; //not allowed
 ```
 When defined on a class, functions are made with the `method` keyword
 ```js
-method testMethod {}
+method testMethod -> void {}
 ```
 
 Extension Methods
@@ -290,8 +290,8 @@ Extension methods can be created by placing the name of the object you want to e
 ```js
 object MyObj {}
 
-func MyObj:extMethod() {}
-shared func MyObj:sharedExtMethod() {}
+func MyObj:extMethod() -> void {}
+shared func MyObj:sharedExtMethod() -> void {}
 
 new MyObj().extMethod();
 MyObj::sharedExtMethod();
@@ -299,12 +299,12 @@ MyObj::sharedExtMethod();
 
 Objects
 ---
-functions and mutables in objects can be marked `shared` which works like `static` in languages such as java or c#
+functions and variables in objects can be marked `shared` which works like `static` in languages such as java or c#
 ```js
 object Test{
-  shared mut x = 10;
+  shared num x = 10;
 
-  shared method sayHi(){
+  shared method sayHi() -> void {
     System::println("hi");
   }
 }
@@ -318,18 +318,18 @@ Operator Overloading
 If an object is encountered in an operator, it will look for the overload method for that operator. Operator methods must be defined with the `operator` keyword, and must have two parameters. Calling an operator function on it's own will result in a runtime error.
 ```c#
 object MyObj {
-  mut x = 0;
+  num x = 0;
 
-  method constructor(x) {
+  method constructor(num x) -> void {
     this.x = x;
   }
 
-  operator add(x, y) {
+  operator add(obj MyObj x, obj MyObj y) -> num {
     return x.x + y.x;
   }
 }
 
-mut x = MyObj(10) + MyObj(20); //looks for a method defined with the `operator` keyword called add. returns 30.
+num x = MyObj(10) + MyObj(20); //looks for a method defined with the `operator` keyword called add. returns 30.
 ```
 
 Built-in types
@@ -338,25 +338,25 @@ Jlox+ defines a number of built in types to use
 
 **System**
 ```js
-System::random(0, 100, false); //random number between lower and upper true/false for inclusive or not
-System::println(x); //print line
-System::print(x); //print without newline
+System::random(num, num, bool); //random number between lower and upper true/false for inclusive or not
+System::println(string); //print line
+System::print(string); //print without newline
 System::cls(); //clear screen
-System::errln(x); //print line to error output
-System::err(x); //print to error output without newline
-System::writeToFile(path, contents, format); //writes contents to path with format 'a = "append", w = "write"'
+System::errln(string); //print line to error output
+System::err(string); //print to error output without newline
+System::writeToFile(string, string, string); //writes contents to path with format 'a = "append", w = "write"'
 ```
 
 **Math**
 
 the math object contains a few `shared` functions for doing math
 ```js
-Math::round(a);
-Math::floor(a);
-Math::min(a, b);
-Math::max(a, b);
-Math::abs(a);
-Math::sqrt(a);
+Math::round(num);
+Math::floor(num);
+Math::min(num, num);
+Math::max(num, num);
+Math::abs(num);
+Math::sqrt(num);
 //pow function defined by ** operator
 ```
 
@@ -368,14 +368,14 @@ by default in jlox+, all objects derive from `Object`.
 
 - `toString()` which by default prints `Lox.Object$<object-type>`.
 ```js
-method toString(){
+method toString() -> string{
   return "Lox.Object$"+type;
 }
 ```
 - `fields()` returns a LoxMap containing the fields of said object
 ```js
-mut x = System();
-mut fields = x.fields();
+obj System x = new System();
+obj Map fields = x.fields();
 //loop through map
 ```
 
@@ -385,16 +385,16 @@ Lists in lox are ambiguous, meaning they dont have a specific type. You can add 
 Lists contain some basic methods.
 ```js
 //Methods
-add(a);
-get(i);
-indexOf(a);
-remove(i);
+add(obj);
+get(num);
+indexOf(obj);
+remove(num);
 
 //Example
-mut x = List();
+obj List x = new List();
 x.add("item");
 x.get(0);
-mut index = x.indexOf("item");
+num index = x.indexOf("item");
 x.remove(0);
 ```
 
@@ -403,19 +403,19 @@ x.remove(0);
 Maps in lox are similar to lists, in which they are basically just a list of keys and a list of values
 ```js
 //Methods
-put(key, value);
-get(key);
+put(string, obj);
+get(string);
 keys();
 values();
 
 //Example
-mut map = Map();
+obj Map map = Map();
 map.put("item", 0);
-map.put("item2", Object());
+map.put("item2", new Object());
 
-mut obj = map.get("item2");
-mut keyList = map.keys();
-mut valueList = map.values();
+obj Object myObj = map.get("item2");
+obj List keyList = map.keys();
+obj List valueList = map.values();
 ```
 
 **Color**
@@ -423,10 +423,10 @@ mut valueList = map.values();
 simple color object, rgba
 ```js
 //fields
-mut r = 0;
-mut g = 0;
-mut b = 0;
-mut a = 0;
+num r = 0;
+num g = 0;
+num b = 0;
+num a = 0;
 
 Color::red();
 Color::green();
