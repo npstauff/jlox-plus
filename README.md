@@ -127,7 +127,7 @@ func helloWorld(string message) -> void{
 ```
 functions can be marked fixed, which makes them unable to be reassigned
 ```kotlin
-fixed func helloWorld(message){
+fixed func helloWorld(string message) -> null{
   System::println("Hello, " + message);
 }
 ```
@@ -232,14 +232,14 @@ interface ITest {
 Interface functions can be defined with a body, to be used for default implementation. If you end a function with a semicolon, either in a class or an interface, it marks it as abstract. If a method is abstract in a class, it looks in its interfaces to see if there is a matching non-abstract function to fufill its default implementation.
 ```c#
 interface ITest {
-  method imethod(x); //abstract
-  method method2(y, z); //abstract
+  method imethod(num x); //abstract
+  method method2(num y, string z); //abstract
   method def() { System::println("def test"); } //non-abstract
 }
 
 object TestObj -> ITest {
-  method imethod(x) { } //non-abstract
-  method method2(y, z) { } //non-abstract
+  method imethod(num x) { } //non-abstract
+  method method2(num y, string z) { } //non-abstract
   method def(); //abstract, looks for non-abstract method in ITest
 }
 
