@@ -17,7 +17,7 @@ public class Environment {
 
   Object get(Token name){
     if(values.containsKey(name.lexeme)){
-      if(values.get(name.lexeme).isstatic){
+      if(values.get(name.lexeme).modifiers.contains(TokenType.STATIC)){
         System.out.println("[WARNING] Accessing static context '" + name.lexeme + "' in global scope in not recommended");
       }
       return values.get(name.lexeme).value;
@@ -28,15 +28,15 @@ public class Environment {
     throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
   }
 
-  void define(String name, Object value, boolean constant, boolean stat, boolean ptr, LoxType type){
+  void define(String name, Object value, Modifiers modifiers, LoxType type){
     if(value != null && new LoxType(value).mismatch(type)) {
       throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", value, 0), "Cant assign value of type '" + new LoxType(value).name + "' to variable '"+name+"' of type '" + type.name + "'");
     }
-    put(name, new Field(value, constant, stat, ptr, type));
+    put(name, new Field(value, modifiers, type));
   }
 
-  void define(String name, Object value, boolean constant, boolean stat, boolean ptr){
-    put(name, new Field(value, constant, stat, ptr, null));
+  void define(String name, Object value, Modifiers modifiers){
+    put(name, new Field(value, modifiers, null));
   }
 
   Object getAt(int distance, String name){
@@ -44,8 +44,8 @@ public class Environment {
     return value != null ? value.value : null;
   }
 
-  void assignAt(int distance, Token name, Object value, boolean isConstant, boolean stat, boolean ptr, LoxType type){
-    ancestor(distance).put(name.lexeme, new Field(value, isConstant, stat, ptr, type));
+  void assignAt(int distance, Token name, Object value, Modifiers modifiers, LoxType type){
+    ancestor(distance).put(name.lexeme, new Field(value, modifiers, type));
   }
 
   Environment ancestor(int distance){
@@ -61,7 +61,7 @@ public class Environment {
     if(values.containsKey(name)){
       Field f = values.get(name);
 
-      if(f.constant){
+      if(f.modifiers.contains(TokenType.CONST)){
         throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", f.value, 0), "Cant assign to constant value '" + name +"'");
       }
       else{
@@ -74,12 +74,10 @@ public class Environment {
   }
 
   void assign(Token name, Object value) {
-    boolean isConstant = false;
+    Modifiers modifiers = new Modifiers();
     if (values.containsKey(name.lexeme)) {
-      isConstant = values.get(name.lexeme).constant;
-      boolean stat = values.get(name.lexeme).isstatic;
-      boolean ptr = values.get(name.lexeme).pointer;
-      Field f = new Field(value, isConstant, stat, ptr, values.get(name.lexeme).type);
+      modifiers = values.get(name.lexeme).modifiers;
+      Field f = new Field(value, modifiers, values.get(name.lexeme).type);
       LoxType type = values.get(name.lexeme).type;
       LoxType objType = new LoxType(value);
       if(type != null && objType != null && type.type != objType.type) {

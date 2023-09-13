@@ -47,7 +47,7 @@ public class LoxList extends LoxNative{
         return false;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.BOOLEAN));
+    }, environment, false, new LoxType(name, TypeEnum.BOOLEAN), new Modifiers(TokenType.STATIC));
   }
 
 private LoxFunction get(Environment environment) {
@@ -63,7 +63,7 @@ private LoxFunction get(Environment environment) {
         return items.get((int)((double)arguments.get(0)));
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
   }
 
 private LoxFunction add(Environment environment) {
@@ -80,7 +80,7 @@ private LoxFunction add(Environment environment) {
         return null;
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.VOID));
+    }, environment, false, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction remove(Environment environment) {
@@ -97,7 +97,7 @@ private LoxFunction add(Environment environment) {
         return null;
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.VOID));
+    }, environment, false, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction indexOf(Environment environment) {
@@ -113,7 +113,7 @@ private LoxFunction add(Environment environment) {
         return items.indexOf((arguments.get(0)));
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction length(Environment environment) {
@@ -129,7 +129,7 @@ private LoxFunction add(Environment environment) {
         return (double)items.size();
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction first(Environment environment) {
@@ -145,7 +145,7 @@ private LoxFunction add(Environment environment) {
         return items.get(0);
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction last(Environment environment) {
@@ -161,7 +161,7 @@ private LoxFunction add(Environment environment) {
         return items.get(items.size() - 1);
       }
       
-    }, environment, false, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
   }
 
  @Override

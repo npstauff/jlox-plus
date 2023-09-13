@@ -71,15 +71,13 @@ abstract class Stmt {
     final Expr expression;
   }
   static class Function extends Stmt {
-    Function(Token name, Token extClass, List<Parameter> params, List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator, LoxType returnType) {
+    Function(Token name, Token extClass, List<Parameter> params, List<Stmt> body, Modifiers modifiers, Boolean hasBody, LoxType returnType) {
       this.name = name;
       this.extClass = extClass;
       this.params = params;
       this.body = body;
-      this.isStatic = isStatic;
-      this.isConstant = isConstant;
+      this.modifiers = modifiers;
       this.hasBody = hasBody;
-      this.isoperator = isoperator;
       this.returnType = returnType;
     }
 
@@ -92,10 +90,8 @@ abstract class Stmt {
     final Token extClass;
     final List<Parameter> params;
     final List<Stmt> body;
-    final boolean isStatic;
-    final boolean isConstant;
+    final Modifiers modifiers;
     final Boolean hasBody;
-    final Boolean isoperator;
     final LoxType returnType;
   }
   static class If extends Stmt {
@@ -159,12 +155,10 @@ abstract class Stmt {
     final Expr value;
   }
   static class Var extends Stmt {
-    Var(Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer, LoxType type) {
+    Var(Token name, Expr initializer, Modifiers modifiers, LoxType type) {
       this.name = name;
       this.initializer = initializer;
-      this.isConstant = isConstant;
-      this.isStatic = isStatic;
-      this.pointer = pointer;
+      this.modifiers = modifiers;
       this.type = type;
     }
 
@@ -175,9 +169,7 @@ abstract class Stmt {
 
     final Token name;
     final Expr initializer;
-    final boolean isConstant;
-    final boolean isStatic;
-    final boolean pointer;
+    final Modifiers modifiers;
     final LoxType type;
   }
   static class While extends Stmt {

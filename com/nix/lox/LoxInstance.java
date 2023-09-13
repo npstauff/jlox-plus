@@ -14,7 +14,7 @@ public class LoxInstance {
     this.interpreter = interpreter;
 
     for(Map.Entry<String, Field> field : klass.fields.entrySet()){
-      if(!field.getValue().isstatic) fields.put(field.getKey(), field.getValue().value);
+      if(!field.getValue().modifiers.contains(TokenType.STATIC)) fields.put(field.getKey(), field.getValue().value);
     }
   }
 

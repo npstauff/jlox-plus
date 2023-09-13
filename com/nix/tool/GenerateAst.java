@@ -35,13 +35,13 @@ public class GenerateAst {
                   " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase",
         "Expression : Expr expression",
         "Function   : Token name, Token extClass, List<Parameter> params," +
-                  " List<Stmt> body, boolean isStatic, boolean isConstant, Boolean hasBody, Boolean isoperator, LoxType returnType",
+                  " List<Stmt> body, Modifiers modifiers, Boolean hasBody, LoxType returnType",
         "If         : Expr condition, Stmt thenBranch," +
                     " Stmt elseBranch",
         "When         : Expr condition, Stmt thenBranch, Stmt finallyBranch",
         "Return     : Token keyword, Expr value",
         "Expect     : Token keyword, Expr value",
-        "Var        : Token name, Expr initializer, boolean isConstant, boolean isStatic, boolean pointer, LoxType type",
+        "Var        : Token name, Expr initializer, Modifiers modifiers, LoxType type",
         "While      : Expr condition, Stmt body",
         "Test      : Expr name, Stmt body",
         "GetFile     : Token name, Expr path",

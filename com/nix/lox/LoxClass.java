@@ -6,16 +6,12 @@ import java.util.Map;
 
 class Field{
   Object value;
-  final boolean constant;
-  final boolean isstatic;
-  final boolean pointer;
+  final Modifiers modifiers;
   final LoxType type;
 
-  Field(Object value, boolean constant, boolean isstatic, boolean pointer, LoxType type){
+  Field(Object value, Modifiers modifiers, LoxType type){
     this.value = value;
-    this.constant = constant;
-    this.isstatic = isstatic;
-    this.pointer = pointer;
+    this.modifiers = modifiers;
     this.type = type;
   }
 
@@ -47,12 +43,12 @@ public class LoxClass implements LoxCallable{
   LoxFunction findMethod(String name, boolean staticGet){
     if(methods.containsKey(name)){
       if(staticGet){
-        if(!methods.get(name).isStatic){
-          throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", methods.get(name).isStatic, 0), "Cannot access non-static method '" + name + "' from static context");
+        if(!methods.get(name).modifiers.contains(TokenType.STATIC)){
+          throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", methods.get(name).modifiers.contains(TokenType.STATIC), 0), "Cannot access non-static method '" + name + "' from static context");
         }
       }
       else{
-        if(methods.get(name).isStatic){
+        if(methods.get(name).modifiers.contains(TokenType.STATIC)){
           System.out.println("[WARNING] use method '" + name + "' from static context");
         }
       }
@@ -69,12 +65,12 @@ public class LoxClass implements LoxCallable{
   Object findField(String name, boolean staticGet){
     if(fields.containsKey(name)){
       if(staticGet){
-        if(!fields.get(name).isstatic){
-          throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", fields.get(name).isstatic, 0), "Cannot access non-static field '" + name + "' from static context");
+        if(!fields.get(name).modifiers.contains(TokenType.STATIC)){
+          throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", fields.get(name).modifiers.contains(TokenType.STATIC), 0), "Cannot access non-static field '" + name + "' from static context");
         }
       }
       else{
-        if(fields.get(name).isstatic){
+        if(fields.get(name).modifiers.contains(TokenType.STATIC)){
           System.out.println("[WARNING] use field '" + name + "' from static context");
         }
       }
@@ -89,21 +85,17 @@ public class LoxClass implements LoxCallable{
   }
 
   Field set(String name, Object value){
-    boolean constant = false;
-    boolean isstatic = false;
-    boolean pointer = false;
+    Modifiers modifiers = new Modifiers();
     LoxType type = new LoxType(value);
     if(fields.containsKey(name)){
-      constant = fields.get(name).constant;
-      isstatic = fields.get(name).isstatic;
-      pointer = fields.get(name).pointer;
-      if(constant){
+      modifiers = fields.get(name).modifiers;
+      if(modifiers.contains(TokenType.CONST)){
         throw new RuntimeError(new Token(TokenType.VAR, "name", value, 0), "Cant assign '" + value +"' to constant '" + name + "'");
       }
     } 
     else if(methods.containsKey(name)){
-      constant = methods.get(name).isConstant;
-      Field f = new Field(value, constant, methods.get(name).isStatic, false, methods.get(name).returnType);
+      modifiers = methods.get(name).modifiers;
+      Field f = new Field(value, modifiers, methods.get(name).returnType);
       fields.put(name, f);
       return f;
     }
@@ -113,11 +105,11 @@ public class LoxClass implements LoxCallable{
         superClass.set(name, value);
       } 
       else{
-        return put(name, value, constant, isstatic, pointer, type);
+        return put(name, value, modifiers, type);
       }
     }
     
-    return put(name, value, constant, isstatic, pointer, type);
+    return put(name, value, modifiers, type);
   }
 
   public static void checkType(LoxType l, LoxType r){
@@ -126,12 +118,12 @@ public class LoxClass implements LoxCallable{
     }
   }
 
-  Field put(String name, Object value, boolean constant, boolean isstatic, boolean pointer, LoxType type){
-    Field newf = new Field(value, constant, isstatic, pointer, type);
+  Field put(String name, Object value, Modifiers modifiers, LoxType type){
+    Field newf = new Field(value, modifiers, type);
     if(fields.containsKey(name)){
       Field f = fields.get(name);
       checkType(new LoxType(f.value), type);    
-      if(f.constant){
+      if(f.modifiers.contains(TokenType.CONST)){
         throw new RuntimeError(new Token(TokenType.VAR, "name", f.value, 0), "Cant assign to constant '" + name +"'");
       }
       else{

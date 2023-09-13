@@ -73,8 +73,10 @@ public class LoxType {
 
 
     public boolean matches(LoxType other) {
-        if(this.type == TypeEnum.OBJECT && other.type == TypeEnum.OBJECT)
+        if(this.type == TypeEnum.OBJECT && other.type == TypeEnum.OBJECT) {
+            if(this.name == "null" || other.name == "null") return true;
             return this.name.equals(other.name);
+        }   
         return this.type == other.type;
     }
 

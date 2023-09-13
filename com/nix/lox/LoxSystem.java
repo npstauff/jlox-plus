@@ -47,7 +47,7 @@ public class LoxSystem extends LoxNative{
         return (double)(Math.random() * (upper - lower)) + lower + (inclusive ? 1 : 0);
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   LoxFunction debug(Environment environment, boolean newline, boolean err){
@@ -65,7 +65,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
+    }, environment, false, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   LoxFunction write(Environment environment) {
@@ -93,7 +93,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
+    }, environment, false, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   LoxFunction cls(Environment environment){
@@ -111,7 +111,7 @@ public class LoxSystem extends LoxNative{
         return null;
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.VOID));
+    }, environment, false, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   @Override

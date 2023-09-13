@@ -43,11 +43,11 @@ public class LoxObject extends LoxNative{
         return map;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
   }
 
   public void defineFields(){
-    put("name", "Object$"+this.type, false, false, false, new LoxType("name", TypeEnum.STRING));
+    put("name", "Object$"+this.type, Modifiers.empty(), new LoxType("name", TypeEnum.STRING));
   }
 
   private LoxFunction init(Environment environment){
@@ -63,7 +63,7 @@ public class LoxObject extends LoxNative{
             return null;
         }
         
-      }, environment, true, new LoxType(name, TypeEnum.VOID));
+      }, environment, true, new LoxType(name, TypeEnum.VOID), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction toString(Environment environment) {
@@ -88,7 +88,7 @@ public class LoxObject extends LoxNative{
           return "Lox.Type$"+type;
         }
         
-      }, environment, false, new LoxType(name, TypeEnum.STRING));
+      }, environment, false, new LoxType(name, TypeEnum.STRING), new Modifiers(TokenType.STATIC));
   }
 
 }

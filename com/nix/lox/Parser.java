@@ -2,6 +2,7 @@ package com.nix.lox;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,24 +37,12 @@ public class Parser {
         if(match(CLASS)) return classDeclaration();
         if(match(INTERFACE)) return interfaceDeclaration();
         if(match(ENUM)) return enumDeclaration();
-        if(match(CONST)){
-          if(match(FUN)){
-            return function("const method");
-          }
-          else{
-            return varDeclaration(true, false);
-          }
+        Modifiers modifiers = new Modifiers();
+        while(matchModifier()){
+          modifiers.add(previous().type);
         }
-        if(match(STATIC)){
-          if(match(FUN)){
-            return function("static method");
-          }
-          else{
-            return varDeclaration(false, true);
-          }
-        } 
-        if(match(FUN)) return function("function");
-        if(matchType()) return varDeclaration(false, false);
+        if(match(FUN)) return function("function", modifiers);
+        if(matchType()) return varDeclaration(modifiers);
 
         return statement();
       } catch(ParseError e){
@@ -104,9 +93,11 @@ public class Parser {
       List<Stmt.Function> methods = new ArrayList<>();
       List<Stmt.Var> variables = new ArrayList<>();
       while(!check(RIGHT_BRACE) && !isAtEnd()){
-        if(check(STATIC)){
-          advance();
-          if(checkType()){
+        Modifiers modifiers = new Modifiers();
+        while(matchModifier()){
+          modifiers.add(previous().type);
+        }
+        if(checkType()){
             LoxType type = new LoxType(peek());
             if(type.type == TypeEnum.OBJECT) {
               advance();
@@ -121,94 +112,34 @@ public class Parser {
 
             Token id = peek();
             advance();
-            boolean ptr = false;
-            if(check(PTR)){
-              ptr = true;
-              advance();
-            }
             consume(EQUAL, "Expected equality");
             Expr expr = expression();
             consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, false, true, ptr, type));
+            variables.add(new Stmt.Var(id, expr, modifiers, type));
           }
           else if(check(METHOD)){
             advance();
-            methods.add(function("static method"));
+            methods.add(function("method", modifiers));
+          }
+          else if(check(OPERATOR)){
+            advance();
+            methods.add(function("method", modifiers));
           }
           else{
-            error(peek(), "Expected static method or variable");
+            error(peek(), "Expected method or variable");
           }
-        }
-        else if(check(CONST)){
-          advance();
-          if(checkType()){
-            LoxType type = new LoxType(peek());
-            if(type.type == TypeEnum.OBJECT) {
-              advance();
-              if(match(FUN)) {
-                type.name = "func";
-              }
-              else{
-                type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-              }
-            }
-            else advance();
-
-            Token id = peek();
-            advance();
-            boolean ptr = false;
-            consume(EQUAL, "Expected equality");
-            Expr expr = expression();
-            consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, true, false, ptr,  type));
-          }
-          else if (match(METHOD)){
-            methods.add(function("const method"));
-          }
-          else{
-            error(peek(), "Expected const method or variable");
-          }
-        }
-        else if(checkType()){
-          LoxType type = new LoxType(peek());
-          if(type.type == TypeEnum.OBJECT) {
-            advance();
-            if(match(FUN)) {
-              type.name = "func";
-            }
-            else{
-              type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-            }
-          }
-          else advance();
-
-          if(check(IDENTIFIER)){
-            Token id = peek();
-            advance();
-            boolean ptr = false;
-            if(check(PTR)){
-              ptr = true;
-              advance();
-            }
-            consume(EQUAL, "Expected equality");
-            Expr expr = expression();
-            consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, false, false, ptr, type));
-          }
-        }
-        else if(check(METHOD)){
-          advance();
-          methods.add(function("method"));
-        }
-        else if(check(OPERATOR)){
-          advance();
-          methods.add(function("operator method"));
-        }
       }
 
       consume(RIGHT_BRACE, "Expect '}' after class body");
 
       return new Stmt.Class(name, superclass, methods, variables, types, interfase);
+    }
+
+    public boolean matchModifier() {
+      for(TokenType m : Modifiers.modifierTypes) {
+        if(match(m)) return true;
+      }
+      return false;
     }
 
     public Stmt.Interface interfaceDeclaration() {
@@ -218,9 +149,11 @@ public class Parser {
       List<Stmt.Function> methods = new ArrayList<>();
       List<Stmt.Var> variables = new ArrayList<>();
       while(!check(RIGHT_BRACE) && !isAtEnd()){
-        if(check(STATIC)){
-          advance();
-          if(checkType()){
+        Modifiers modifiers = new Modifiers();
+        while(matchModifier()){
+          modifiers.add(previous().type);
+        }
+        if(checkType()){
             LoxType type = new LoxType(peek());
             if(type.type == TypeEnum.OBJECT) {
               advance();
@@ -235,83 +168,22 @@ public class Parser {
 
             Token id = peek();
             advance();
-            boolean ptr = false;
-            if(check(PTR)){
-              ptr = true;
-              advance();
-            }
+            consume(EQUAL, "Expected equality");
+            Expr expr = expression();
             consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, null, false, true, ptr, type));
+            variables.add(new Stmt.Var(id, expr, modifiers, type));
           }
           else if(check(METHOD)){
             advance();
-            methods.add(function("static method"));
+            methods.add(function("method", modifiers));
+          }
+          else if(check(OPERATOR)){
+            advance();
+            methods.add(function("method", modifiers));
           }
           else{
-            error(peek(), "Expected static method or variable");
+            error(peek(), "Expected method or variable");
           }
-        }
-        else if(check(CONST)){
-          advance();
-          if(checkType()){
-            LoxType type = new LoxType(peek());
-            if(type.type == TypeEnum.OBJECT) {
-              advance();
-              if(match(FUN)) {
-                type.name = "func";
-              }
-              else{
-                type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-              }
-            }
-            else advance();
-
-            Token id = peek();
-            advance();
-            boolean ptr = false;
-            if(check(PTR)){
-              ptr = true;
-              advance();
-            }
-            consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, null, true, false, ptr, type));
-          }
-          else if (match(METHOD)){
-            methods.add(function("const method"));
-          }
-          else{
-            error(peek(), "Expected const method or variable");
-          }
-        }
-        else if(checkType()){
-          LoxType type = new LoxType(peek());
-          if(type.type == TypeEnum.OBJECT) {
-            advance();
-            if(match(FUN)) {
-              type.name = "func";
-            }
-            else{
-              type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-            }
-          }
-          else advance();
-
-          Token id = peek();
-          advance();
-          if(check(PTR)){
-            advance();
-          }
-          consume(SEMICOLON, "Expect semicolon after variable");
-          variables.add(new Stmt.Var(id, null, false, false, false, type));
-        }
-        else if(check(METHOD)){
-          advance();
-          methods.add(function("method"));
-        }
-        else if(check(OPERATOR)){
-          advance();
-          methods.add(function("operator method"));
-        }
       }
 
       consume(RIGHT_BRACE, "Expect '}' after interface body");
@@ -380,7 +252,7 @@ public class Parser {
       return new Stmt.Switch(id, cases, defaultCase);
     }
 
-    private Stmt.Function function(String kind){
+    private Stmt.Function function(String kind, Modifiers modifiers){
       Token extClass = null;
       Token name = consume(IDENTIFIER, "Expect " + kind + " name or extension class.");
       if(match(CLASSEXT)){
@@ -430,16 +302,12 @@ public class Parser {
         body = block();
       }
       
-      return new Stmt.Function(name, extClass, parameters, body, kind.equals("static method"), kind.equals("const method"),
-       hasBody, kind.equals("operator method"), new LoxType(type));
+      return new Stmt.Function(name, extClass, parameters, body, modifiers,
+       hasBody, new LoxType(type));
     }
 
-    private Stmt varDeclaration(boolean constant, boolean isStatic){
+    private Stmt varDeclaration(Modifiers modifiers){
       Token type = previous();
-      if(constant || isStatic){
-        type = peek();
-        advance();
-      }
       LoxType lType = new LoxType(type);
       if(lType.type == TypeEnum.OBJECT) {
         if(match(FUN)){
@@ -450,20 +318,13 @@ public class Parser {
         }
       }
       Token name = consume(IDENTIFIER, "Expect variable name.");
-
-      boolean ptr = false;
-      if(match(PTR)){
-        ptr = true;
-        advance();
-      }
-
       Expr initializer = null;
       if(match(EQUAL)){
         initializer = expression();
       }
 
       consume(SEMICOLON, "Expect ';' after variable declaration");
-      return new Stmt.Var(name, initializer, constant, isStatic, ptr, lType);
+      return new Stmt.Var(name, initializer,modifiers, lType);
     }
 
     private Stmt statement(){
@@ -632,7 +493,7 @@ public class Parser {
       if(match(SEMICOLON)){
         initializer = null;
       }else if(match(VAR)){
-        initializer = varDeclaration(false, false);
+        initializer = varDeclaration(new Modifiers());
       } else{
         initializer = expressionStatement();
       }

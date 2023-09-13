@@ -38,7 +38,7 @@ public class LoxMap extends LoxNative{
         return items.get(arguments.get(0));
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
 }
 
 private LoxFunction put(Environment environment) {
@@ -55,7 +55,7 @@ private LoxFunction put(Environment environment) {
         return null;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
 }
 
 private LoxFunction keys(Environment environment) {
@@ -77,7 +77,7 @@ private LoxFunction keys(Environment environment) {
         return list;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
 }
 
 private LoxFunction values(Environment environment) {
@@ -99,7 +99,7 @@ private LoxFunction values(Environment environment) {
         return list;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
 }
 
 

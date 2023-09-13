@@ -42,7 +42,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.sqrt((double)arguments.get(0));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction round(Environment environment) {
@@ -58,7 +58,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.round((double)arguments.get(0));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction floor(Environment environment) {
@@ -74,7 +74,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.floor((double)arguments.get(0));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction abs(Environment environment) {
@@ -90,7 +90,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.abs((double)arguments.get(0));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction min(Environment environment) {
@@ -106,7 +106,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.min((double)arguments.get(0), (double)arguments.get(1));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
   private LoxFunction max(Environment environment) {
@@ -122,7 +122,7 @@ public class LoxMath extends LoxNative{
         return (double)Math.max((double)arguments.get(0), (double)arguments.get(1));
       }
       
-    }, environment, false, true, new LoxType(name, TypeEnum.NUMBER));
+    }, environment, false, new LoxType(name, TypeEnum.NUMBER), new Modifiers(TokenType.STATIC));
   }
 
 
