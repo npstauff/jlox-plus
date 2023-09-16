@@ -54,7 +54,7 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 | Object Types (obj)        | example |  meaning|
 |--------------|:-----:|-----------:|
 | obj [Type] | obj Test testObj = new Test(); | an object variable of type [Type] variable |
-| obj func | obj func ptr = myFunc; | a pointer to a function |
+| obj func(types) | obj func(num, string) ptr = myFunc; | a pointer to a function |
 
 variable
 ---
@@ -330,6 +330,22 @@ object MyObj {
 }
 
 num x = MyObj(10) + MyObj(20); //looks for a method defined with the `operator` keyword called add. returns 30.
+```
+Anonymous functions
+---
+Anonymous functions are defined with the type followed by the parameters. They are used to write inline functions.
+```c#
+obj func(num) f = void(num x) {
+System::println(x);
+};
+
+f(10); //prints '10'
+
+obj func(obj func()) nested = void(obj func() x) {x();};
+
+nested(void() {
+  System::println("nested");
+}); //prints 'nested'
 ```
 
 Built-in types
