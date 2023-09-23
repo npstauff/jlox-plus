@@ -455,7 +455,7 @@ new Color().setAlpha(a);
 ```
 
 # TODO
-- [ ] Ternary operators
+- [x] Ternary operators
 - [ ] String functions
 - [ ] operator overloading
 - [x] extension methods
