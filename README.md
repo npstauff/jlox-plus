@@ -348,6 +348,44 @@ nested(void() {
 }); //prints 'nested'
 ```
 
+Properties
+---
+Properties are similar to variables, except that they define a get and optional set method. Properties work as their own backing-stores
+```js
+num x {
+  get {
+    return value/2; //returns the value stored in x
+  }
+
+  set {
+    return value*2; //returns the value passed to the set mehtod back into the property
+  }
+}
+
+x = 10; //x is set to 20
+System::println(x); //prints 10
+```
+Properties can also be defined without a setter
+```js
+num x {
+  get {
+    return 10;
+  }
+}
+
+num y = x; //y is 10
+```
+
+Arrays
+---
+Arrays in lox are strongly typed, and can be initilaized in two ways
+```js
+num[] x = [1, 2, 3]; //number array with three elements '1, 2, 3'
+
+num[] y = [num]; //empty number array
+```
+Arrays can be accessed with the `[]` operator
+
 Built-in types
 ---
 Jlox+ defines a number of built in types to use
