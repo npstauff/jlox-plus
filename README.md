@@ -54,7 +54,7 @@ java -cp <path-to-jar>.jar com.nix.lox.Lox <file-to-run>.lox
 | Object Types (obj)        | example |  meaning|
 |--------------|:-----:|-----------:|
 | obj [Type] | obj Test testObj = new Test(); | an object variable of type [Type] variable |
-| obj func | obj func ptr = myFunc; | a pointer to a function |
+| obj func(types) | obj func(num, string) ptr = myFunc; | a pointer to a function |
 
 variable
 ---
@@ -331,6 +331,60 @@ object MyObj {
 
 num x = MyObj(10) + MyObj(20); //looks for a method defined with the `operator` keyword called add. returns 30.
 ```
+Anonymous functions
+---
+Anonymous functions are defined with the type followed by the parameters. They are used to write inline functions.
+```c#
+obj func(num) f = void(num x) {
+System::println(x);
+};
+
+f(10); //prints '10'
+
+obj func(obj func()) nested = void(obj func() x) {x();};
+
+nested(void() {
+  System::println("nested");
+}); //prints 'nested'
+```
+
+Properties
+---
+Properties are similar to variables, except that they define a get and optional set method. Properties work as their own backing-stores
+```js
+num x {
+  get {
+    return value/2; //returns the value stored in x
+  }
+
+  set {
+    return value*2; //returns the value passed to the set mehtod back into the property
+  }
+}
+
+x = 10; //x is set to 20
+System::println(x); //prints 10
+```
+Properties can also be defined without a setter
+```js
+num x {
+  get {
+    return 10;
+  }
+}
+
+num y = x; //y is 10
+```
+
+Arrays
+---
+Arrays in lox are strongly typed, and can be initilaized in two ways
+```js
+num[] x = [1, 2, 3]; //number array with three elements '1, 2, 3'
+
+num[] y = [num]; //empty number array
+```
+Arrays can be accessed with the `[]` operator
 
 Built-in types
 ---
@@ -439,7 +493,7 @@ new Color().setAlpha(a);
 ```
 
 # TODO
-- [ ] Ternary operators
+- [x] Ternary operators
 - [ ] String functions
 - [ ] operator overloading
 - [x] extension methods
