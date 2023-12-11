@@ -1,0 +1,18 @@
+object Testitem:<T> {
+    method add(any t) -> void {
+        if(!(t is T)) {
+            throw("bad type");
+        }
+        else{
+            System::println("good type");
+        }
+    }
+}
+
+object Test {
+
+}
+
+obj Testitem item = new Testitem:<System>();
+item.add(new System());
+item.add(10);

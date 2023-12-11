@@ -32,18 +32,18 @@ public class LoxObject extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         LoxInstance map = new LoxInstance(new LoxMap(environment, interpreter, type), interpreter);
         for(String s : type.fields.keySet()){
           ArrayList<Object> args = new ArrayList<>();
           args.add(s);
           args.add(type.fields.get(s).value);
-          map.klass.findMethod("put", false).call(interpreter, args);
+          map.klass.findMethod("put", false).call(interpreter, args,  templates);
         }
         return map;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers());
   }
 
   public void defineFields(){
@@ -59,7 +59,7 @@ public class LoxObject extends LoxNative{
         }
 
         @Override
-        public Object call(Interpreter interpreter, List<Object> arguments) {
+        public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
             return null;
         }
         
@@ -75,20 +75,15 @@ public class LoxObject extends LoxNative{
         }
 
         @Override
-        public Object call(Interpreter interpreter, List<Object> arguments) {
-            if(type.methods.containsKey("toString") && !type.name.equals("Object")){
-              return type.findMethod("toString", false).call(interpreter, new ArrayList<>());
-            }
-            else{
-              return defaultToString();
-            }
+        public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
+            return defaultToString();
         }
 
         public String defaultToString(){
           return "Lox.Type$"+type;
         }
         
-      }, environment, false, new LoxType(name, TypeEnum.STRING), new Modifiers(TokenType.STATIC));
+      }, environment, false, new LoxType(name, TypeEnum.STRING), new Modifiers());
   }
 
 }

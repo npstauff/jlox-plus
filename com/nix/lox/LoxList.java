@@ -38,7 +38,7 @@ public class LoxList extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         for(Object item : items){
           if(item.equals(arguments.get(0))){
             return true;
@@ -59,7 +59,7 @@ private LoxFunction get(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return items.get((int)((double)arguments.get(0)));
       }
       
@@ -75,7 +75,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         items.add(arguments.get(0));
         return null;
       }
@@ -92,7 +92,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         items.remove((int)((double)arguments.get(0)));
         return null;
       }
@@ -109,7 +109,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return items.indexOf((arguments.get(0)));
       }
       
@@ -125,7 +125,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)items.size();
       }
       
@@ -141,7 +141,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return items.get(0);
       }
       
@@ -157,7 +157,7 @@ private LoxFunction add(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return items.get(items.size() - 1);
       }
       

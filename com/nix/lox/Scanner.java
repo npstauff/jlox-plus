@@ -32,7 +32,7 @@ public class Scanner {
     keywords.put("true",   TokenType.TRUE);
     keywords.put("mut",    TokenType.VAR);
     keywords.put("while",  TokenType.WHILE);
-    keywords.put("when",  TokenType.WHEN);
+    keywords.put("until",  TokenType.WHEN);
     keywords.put("do",  TokenType.FINALLY);
     keywords.put("shared",  TokenType.STATIC);
     keywords.put("fixed",  TokenType.CONST);
@@ -57,6 +57,19 @@ public class Scanner {
     keywords.put("obj",  TokenType.OBJPARAM);
     keywords.put("typeof",  TokenType.TYPEOF);
     keywords.put("is",  TokenType.IS);
+    keywords.put("anonymous",  TokenType.ANONYMOUS);
+    keywords.put("as",  TokenType.AS);
+    keywords.put("cast",  TokenType.CAST);
+    keywords.put("any",  TokenType.ANY);
+    keywords.put("unsigned",  TokenType.UNSIGNED);
+    keywords.put("get",  TokenType.GET);
+    keywords.put("set",  TokenType.SET);
+    keywords.put("byte",  TokenType.BYTE);
+    keywords.put("sizeof",  TokenType.LENGTH);
+    keywords.put("try",  TokenType.TRY);
+    keywords.put("catch",  TokenType.CATCH);
+    keywords.put("type",  TokenType.TYPE);
+    //keywords.put("value",  TokenType.VALUE);
     //keywords.put("continue",  TokenType.CONTINUE);
   }
 
@@ -109,6 +122,8 @@ public class Scanner {
         }
       } break;
       case ';': addToken(TokenType.SEMICOLON); break;
+      case '[': addToken(TokenType.LEFT_BRACKET); break;
+      case ']': addToken(TokenType.RIGHT_BRACKET); break;
       case '*':{
         if(match('=')){
           addToken(TokenType.STAR_ASSIGN);
@@ -131,14 +146,22 @@ public class Scanner {
           addToken(TokenType.NULL_EQUAL_EQUAL);
         }
         else{
-          Lox.error(new Token(TokenType.FALSE, "?", null, line), "Expect '?' or '=' or '.' after a null safe expression");
+          addToken(TokenType.QUESTION);
         }
        break;
       case '!':
         addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
         break;
       case '=':
-        addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
+        if(match('=')){
+          addToken(TokenType.EQUAL_EQUAL);
+        }
+        // else if(match('>')){
+        //   addToken(TokenType.SETASSIGN);
+        // }
+        else{
+          addToken(TokenType.EQUAL);
+        }
         break;
       case '<':
         if(match('=')){
@@ -175,7 +198,7 @@ public class Scanner {
           addToken(TokenType.GETSTATIC);
         }
         else{
-          addToken(TokenType.CLASSEXT);
+          addToken(TokenType.COLON);
         }
         break;
       case '$':

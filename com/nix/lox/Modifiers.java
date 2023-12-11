@@ -9,7 +9,7 @@ public class Modifiers {
 
     private List<TokenType> modifiers;
 
-    public static TokenType[] modifierTypes = {TokenType.CONST, TokenType.STATIC, TokenType.OPERATOR};
+    public static TokenType[] MODIFIERS = {TokenType.CONST, TokenType.STATIC, TokenType.OPERATOR, TokenType.CAST, TokenType.UNSIGNED};
 
     public Modifiers(List<TokenType> modifiers){
         this.modifiers = modifiers;
@@ -37,7 +37,7 @@ public class Modifiers {
 
     public void add(TokenType modifier, boolean shouldAdd){
         if(!shouldAdd) return;
-        modifiers.add(modifier);
+        add(modifier);
     }
 
     public void remove(TokenType modifier){
@@ -55,7 +55,7 @@ public class Modifiers {
     public boolean matches(Modifiers other){
         if(other == null) return false;
         if(other.size() != size()) return false;
-        for(TokenType type : modifierTypes){
+        for(TokenType type : MODIFIERS){
             if(contains(type) != other.contains(type)) return false;
         }
         return true;
@@ -63,5 +63,9 @@ public class Modifiers {
 
     public boolean mismatch(Modifiers other){
         return !matches(other);
+    }
+
+    public boolean not(TokenType t) {
+        return !contains(t);
     }
 }

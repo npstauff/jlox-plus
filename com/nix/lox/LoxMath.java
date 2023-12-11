@@ -38,7 +38,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.sqrt((double)arguments.get(0));
       }
       
@@ -54,7 +54,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.round((double)arguments.get(0));
       }
       
@@ -70,7 +70,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.floor((double)arguments.get(0));
       }
       
@@ -86,7 +86,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.abs((double)arguments.get(0));
       }
       
@@ -102,7 +102,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.min((double)arguments.get(0), (double)arguments.get(1));
       }
       
@@ -118,7 +118,7 @@ public class LoxMath extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return (double)Math.max((double)arguments.get(0), (double)arguments.get(1));
       }
       

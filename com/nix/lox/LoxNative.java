@@ -7,7 +7,7 @@ public abstract class LoxNative extends LoxClass {
    LoxClass type;
 
   LoxNative(String name, LoxClass supero, Map<String, LoxFunction> methods, Interpreter interpreter, LoxClass type){
-    super(null, null, null, new HashMap<String, Field>(), null);
+    super(null, null, null, null, new HashMap<String, Field>(), null);
     this.type = type == null ? this : type;
     defineFields();
   }

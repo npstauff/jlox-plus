@@ -1,23 +1,33 @@
 package com.nix.lox;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.nix.lox.Expr.Array;
 import com.nix.lox.Expr.Assign;
 import com.nix.lox.Expr.Binary;
 import com.nix.lox.Expr.Call;
+import com.nix.lox.Expr.Cast;
 import com.nix.lox.Expr.Get;
+import com.nix.lox.Expr.GetIndex;
 import com.nix.lox.Expr.GetStatic;
 import com.nix.lox.Expr.Grouping;
+import com.nix.lox.Expr.Length;
 import com.nix.lox.Expr.Literal;
 import com.nix.lox.Expr.Logical;
 import com.nix.lox.Expr.New;
 import com.nix.lox.Expr.Set;
+import com.nix.lox.Expr.SetAssign;
+import com.nix.lox.Expr.SetIndex;
 import com.nix.lox.Expr.Super;
+import com.nix.lox.Expr.Ternary;
 import com.nix.lox.Expr.This;
+import com.nix.lox.Expr.Type;
 import com.nix.lox.Expr.Unary;
+import com.nix.lox.Expr.Value;
 import com.nix.lox.Expr.Variable;
 import com.nix.lox.LoxType.TypeEnum;
 import com.nix.lox.Stmt.Block;
@@ -29,20 +39,25 @@ import com.nix.lox.Stmt.Expression;
 import com.nix.lox.Stmt.Function;
 import com.nix.lox.Stmt.GetFile;
 import com.nix.lox.Stmt.If;
+import com.nix.lox.Stmt.Property;
 import com.nix.lox.Stmt.Return;
 import com.nix.lox.Stmt.Switch;
+import com.nix.lox.Stmt.Try;
 import com.nix.lox.Stmt.Var;
 import com.nix.lox.Stmt.While;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-  final Environment globals = new Environment();
+  public static Interpreter current;
+
+  final Environment globals = new Environment(this);
   Environment environment = globals;
-  private final Map<Expr, Integer> locals = new HashMap<>();
+  private final Map<Token, Integer> locals = new HashMap<>();
 
   Interpreter(){
     defineNativeFunctions();
     defineNativeClasses();
+    current = this;
   }
 
   
@@ -58,7 +73,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         throw new RuntimeError(new Token(TokenType.EOF, "err", null, -1), "["+"ERROR THROWN"+"] "+arguments.get(0).toString());
       }
       
@@ -101,7 +116,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             List<Object> args = new ArrayList<>();
             args.add(leftInst ? (LoxInstance)left : left);
             args.add(rightInst ? (LoxInstance)right : right);
-            return method.callFunction(this, args, true);
+            return method.callFunction(this, args, true, new ArrayList<>());
           }
           else{
             String name = leftInst ? ((LoxInstance)left).klass.name : ((LoxInstance)right).klass.name;
@@ -266,7 +281,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     stmt.accept(this);
   }
 
-  void resolve(Expr expr, int depth){
+  void resolve(Token expr, int depth){
     locals.put(expr, depth);
   }
 
@@ -276,6 +291,63 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     return null;
   }
 
+  public static void checkModifiers(Modifiers modifiers, LoxType type, Object value, String s) {
+      checkUnsigned(modifiers, type, value, s);
+      checkByte(modifiers, type, value, s);
+  }
+
+  private static void checkByte(Modifiers modifiers, LoxType type, Object value, String s) {
+    if(value instanceof LoxProperty) {
+      Object val = ((LoxProperty)value).get(Interpreter.current);
+      checkByte(modifiers, new LoxType(val), val, s);
+      return;
+    }
+    if(type.type == TypeEnum.NUMBER && modifiers.contains(TokenType.BYTE)) {
+      if(value instanceof LoxArray) {
+        LoxArray array = (LoxArray)value;
+        for(Object o : array.values()) {
+          if((Double)o > 255 || (Double)o < 0) {
+            throw new RuntimeError(new Token(TokenType.BYTE, "byte", null, 0), "Can't assign value outside of byte range to byte array '" + s + "'");
+          }
+        }
+      }
+      else if((Double)value > 255 || (Double)value < 0) {
+        throw new RuntimeError(new Token(TokenType.BYTE, "byte", null, 0), "Can't assign value outside of byte range to byte variable '" + s + "'");
+      }
+    }
+  }
+
+  private static void checkUnsigned(Modifiers modifiers, LoxType type, Object value, String s) {
+    if(value instanceof LoxProperty) {
+      Object val = ((LoxProperty)value).get(Interpreter.current);
+      checkUnsigned(modifiers, new LoxType(val), val, s);
+      return;
+    }
+    if(value instanceof LoxArray) {
+      LoxArray array = (LoxArray)value;
+      for(Object o : array.values()) {
+        checkUnsigned(modifiers, new LoxType(o), o, s);
+      }
+      return;
+    }
+    if(type.type == TypeEnum.NUMBER && modifiers.contains(TokenType.UNSIGNED)) {
+      if((Double)value < 0) {
+        throw new RuntimeError(new Token(TokenType.UNSIGNED, "unsigned", null, 0), "Can't assign negative value to unsigned variable '" + s + "'");
+      }
+    }
+    else if(type.type != TypeEnum.NUMBER && modifiers.contains(TokenType.UNSIGNED)) {
+      throw new RuntimeError(new Token(TokenType.UNSIGNED, "unsigned", null, 0), "Can't assign unsigned modifier to non-number variable '" + s + "'");
+    }
+  }
+
+  public static void checkModifiers(Field f, String name) {
+    if(f.type == null) return;
+    checkModifiers(f.modifiers, f.type, f.value, name);
+  }
+
+  public static void checkModifiers(Stmt.Var s, Object value, String name) {
+    checkModifiers(s.modifiers, s.type, value, name);
+  }
 
   @Override
   public Void visitVarStmt(Var stmt) {
@@ -283,6 +355,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     if(stmt.initializer != null) {
       value = evaluate(stmt.initializer);
     }
+    else{
+      value = defaultValue(stmt.type);
+    }
+    if(environment.enclosing == null && stmt.modifiers.contains(TokenType.STATIC)) {
+      throw new RuntimeError(stmt.name, "Cannot declare static variable in global scope");
+    }
+    checkModifiers(stmt, value, stmt.name.lexeme);
     environment.define(stmt.name.lexeme, value, stmt.modifiers, stmt.type);
     return null;
   }
@@ -293,7 +372,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   private Object lookUpVariable(Token name, Expr expr) {
-    Integer distance = locals.get(expr);
+    Integer distance = locals.get(name);
     if(distance != null){
       return environment.getAt(distance, name.lexeme);
     } else {
@@ -315,7 +394,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Modifiers modifiers = Modifiers.empty();
     modifiers = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).modifiers : null;
     LoxType type = environment.values.get(expr.name.lexeme) != null ? environment.values.get(expr.name.lexeme).type : null;
-    Integer distance = locals.get(expr);
+    Integer distance = locals.get(expr.name);
 
     boolean hasObject = distance != null ? 
       environment.getAt(distance, expr.name.lexeme) != null : environment.get(expr.name) != null;
@@ -323,7 +402,26 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     if(hasObject){
       boolean leftIsDouble = false;
       boolean rightIsDouble = false;
-      Object left = distance != null ? environment.getAt(distance, expr.name.lexeme) : environment.get(expr.name);
+      Object left = null;
+      left = distance != null ? environment.getAt(distance, expr.name.lexeme) : environment.get(expr.name);
+      if(left != null) {
+        Field f = distance != null ? environment.getFieldAt(distance, expr.name.lexeme) : environment.getField(expr.name);
+        if(f.value instanceof LoxProperty) {
+          LoxProperty property = (LoxProperty) f.value;
+          left = property;
+          ArrayList<Object> args = new ArrayList<>();
+          args.add(right);
+          if(property.getSet() != null) property.value = property.set(this, args);
+          else throw new RuntimeError(expr.name, "Cannot assign to property '" + expr.name.lexeme + "' because it is read-only");
+
+          if(distance != null){
+            environment.assignAt(distance, expr.name, property, modifiers, type);
+          } else {
+            globals.assign(expr.name, property);
+          }
+          return right;
+        }
+      }
 
       if(!validAssignment(left, right)){
         Lox.error(new Token(TokenType.EQUAL, left.toString(), 0, 0), "Not a valid assignment");
@@ -442,7 +540,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitBlockStmt(Block stmt) {
-    executeBlock(stmt.statements, new Environment(environment));
+    executeBlock(stmt.statements, new Environment(environment, this));
     return null;
   }
 
@@ -455,8 +553,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         execute(stmt);
       }
     }finally{
-      this.environment = previous;
-    }
+       this.environment = previous;
+     }
   }
 
   @Override
@@ -500,8 +598,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
     else if (expr.operator.type == TokenType.IS){
       LoxType leftType = new LoxType(left);
-      LoxType rightType = new LoxType(evaluate(expr.right));
-      System.out.println(leftType.type + " " + rightType.type + " " + leftType.name + " " + rightType.name);
+      Object right = evaluate(expr.right);
+      LoxType rightType = new LoxType(right);
+      if(right instanceof LoxType) {
+        rightType = (LoxType)right;
+      }
       return leftType.matches(rightType);
     }
 
@@ -547,6 +648,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       arguments.add(evaluate(argument));
     }
 
+    List<LoxClass> generics = new ArrayList<>();
+    for(Token generic : expr.templates){
+      Object value = lookUpVariable(generic, expr);
+      if(value instanceof LoxClass){
+        generics.add((LoxClass)value);
+      }
+      else{
+        throw new RuntimeError(generic, "Expected class, got '" + value + "' instead");
+      }
+    }
+
     if(!(callee instanceof LoxCallable)){
       throw new RuntimeError(expr.paren, "Can only call functions and class constructors, not '" + callee + "'");
     }
@@ -567,23 +679,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     if(function instanceof LoxFunction) {
-      return ((LoxFunction)function).callFunction(this, arguments, false);
+      return ((LoxFunction)function).callFunction(this, arguments, false, generics);
     }
 
-    return function.call(this, arguments);
+    return function.call(this, arguments, generics);
   }
 
   @Override
   public Void visitFunctionStmt(Function stmt) {
     LoxFunction function = new LoxFunction(stmt, environment, false, stmt.returnType, stmt.modifiers);
     if(stmt.extClass == null) {
-      environment.define(stmt.name.lexeme, function, function.modifiers);
+      environment.define(function.getName(), function, function.modifiers);
     }
     else{
       Object var = environment.get(stmt.extClass);
       if(var != null){
         if(var instanceof LoxClass){
-          ((LoxClass)var).methods.put(stmt.name.lexeme, function);
+          ((LoxClass)var).methods.put(function.getName(), function);
         }
         else{
           throw new RuntimeError(stmt.name, "Cannot extend non-class '" + stmt.extClass.lexeme + "'");
@@ -633,9 +745,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   
     environment.define(stmt.name.lexeme, stmt.name, Modifiers.empty());
 
-    environment = new Environment(environment);
+    environment = new Environment(environment, this);
     environment.define("super", superclass, Modifiers.empty());
-    
+    for(Token type : stmt.templates) {
+      environment.define(type.lexeme, new LoxObject(environment, current, type.lexeme, null), Modifiers.empty(), new LoxType("any", TypeEnum.ANY));
+    }
 
 
     Map<String, LoxFunction> methods = new HashMap<>();
@@ -664,14 +778,28 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       LoxFunction function = new LoxFunction(method, environment, false, method.returnType, method.modifiers);
       methods.put(method.name.lexeme, function);
     }
+
+    
+
     for (Stmt.Var var : stmt.variables) {
       Object value = evaluate(var.initializer);
       if(new LoxType(value).mismatch(var.type)){
         throw new RuntimeError(var.name, "Variable '"+var.name.lexeme+"' must be of type '"+var.type.name+"', got '"+new LoxType(value).name+"'");
       }
       Field f = new Field(value, var.modifiers, var.type);
+      checkModifiers(f, var.name.lexeme);
       fields.put(var.name.lexeme, f);
     }
+
+    for (Stmt.Property var : stmt.props) {
+      LoxProperty property = property(var);
+      Field f = new Field(property, var.modifiers, var.type);
+      checkModifiers(f, var.name.lexeme);
+      fields.put(var.name.lexeme, f);
+    }
+
+    
+    
 
     if(stmt.interfase != null) {
       for(Token interfaseToken : stmt.interfase) {
@@ -719,7 +847,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     
     
 
-    LoxClass klass = new LoxClass(stmt.name.lexeme, (LoxClass)superclass, methods, fields, this);
+    LoxClass klass = new LoxClass(environment, stmt.name.lexeme, (LoxClass)superclass, methods, fields, this);
+    klass.templates = stmt.templates;
 
     if(environment.enclosing != null){
       environment = environment.enclosing;
@@ -763,7 +892,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Void visitInterfaceStmt(Stmt.Interface inter){
     environment.define(inter.name.lexeme, inter.name, Modifiers.empty());
 
-    environment = new Environment(environment);
+    environment = new Environment(environment, this);
 
     Map<String, Stmt.Function> methods = new HashMap<>();
     Map<String, Stmt.Var> fields = new HashMap<>();
@@ -791,7 +920,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Void visitEnumStmt(Stmt.Enum stmt){
     environment.define(stmt.name.lexeme, stmt.name, Modifiers.empty());
 
-    environment = new Environment(environment);
+    environment = new Environment(environment, this);
 
     Map<Token, LoxEnum.Element> elements = new HashMap<>();
 
@@ -923,8 +1052,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitValueExpr(Value expr) {
+    return lookUpVariable(expr.keyword, expr);
+  }
+
+  @Override
   public Object visitSuperExpr(Super expr) {
-    int distance = locals.get(expr);
+    int distance = locals.get(expr.keyword);
     LoxClass superclass = (LoxClass)environment.getAt(distance, "super");
 
     LoxInstance object = (LoxInstance)environment.getAt(distance-1, "this");
@@ -936,7 +1070,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
           "Undefined property '" + expr.method.lexeme + "'.");
     }
 
-    return method.bind(object);
+    return method.bind(object, this);
   }
 
 
@@ -946,7 +1080,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object object = evaluate(expr.object);
     if(object instanceof LoxClass){
       if(((LoxClass)object).findField(expr.name.lexeme, true) != null){
-        return ((LoxClass)object).findField(expr.name.lexeme, true);
+        Object val = ((LoxClass)object).findField(expr.name.lexeme, true).value;
+        if(val instanceof LoxProperty) {
+          return ((LoxProperty)val).get(this);
+        }
+        return val;
       }
       else{
         return ((LoxClass)object).findMethod(expr.name.lexeme, true);
@@ -956,7 +1094,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       return ((LoxEnum)object).getValue(expr.name);
     }
 
-    throw new RuntimeError(expr.name, "Can only get public functions from a class or enum");
+    throw new RuntimeError(expr.name, "Can only get shared values from a class or enum");
   }
 
 
@@ -1010,7 +1148,325 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Object visitTypeofExpr(Expr.Typeof stmt) {
     Object value = evaluate(stmt.value);
-    return new LoxType(value).type;
+    return new LoxType(value);
+  }
+
+
+
+  @Override
+  public Object visitAnonymousFunctionExpr(Expr.AnonymousFunction expr) {
+    environment = new Environment(environment, this);
+    LoxFunction lf = new LoxFunction(expr, environment, expr.returnType, new Modifiers(TokenType.ANONYMOUS));
+    if(environment.enclosing != null) {
+      environment = environment.enclosing;
+    }
+    return lf;
+  }
+
+  public String UpperFirstLetter(String s) {
+      return s.substring(0, 1).toUpperCase() + s.substring(1);
+  }
+
+  public Object callCastMethod(LoxInstance instance, LoxType type, Token operator){
+    String typeNameCamel = UpperFirstLetter(type.name.contains("func") ? "func" : type.name);
+    String methodName = "to" + typeNameCamel;
+    methodName = methodName.replace("[]", "Array");
+    LoxFunction method = instance.klass.findMethod(methodName, false);
+    if(method == null) {
+      throw new RuntimeError(operator, "Cannot cast '" + instance.klass.name + "' to '" + type + "' because no cast method '" + methodName + "' was found");
+    }
+    else if(method.modifiers.not(TokenType.CAST)){
+      throw new RuntimeError(operator, "Cannot cast '" + instance.klass.name + "' to '" + type + "' because the method '" + methodName + "' is not marked as a cast method");
+    }
+    else if(method.returnType.mismatch(type)){
+      throw new RuntimeError(operator, "Cannot cast '" + instance.klass.name + "' to '" + type + "' because the cast method '" + methodName + "' does not return the correct type");
+    }
+    else if(method.declaration.params.size() > 0) {
+      throw new RuntimeError(operator, "Cannot cast '" + instance.klass.name + "' to '" + type + "' because the cast method '" + methodName + "' has parameters, which is not allowed");
+    }
+    else{
+      return method.bind(instance, this).callFunction(this, new ArrayList<>(), false, new ArrayList<>());
+    }
+  }
+
+  @Override
+  public Object visitCastExpr(Cast expr) {
+    Object castee = evaluate(expr.value);
+    LoxType original = new LoxType(castee);
+    Object typeObject = evaluate(expr.castType);
+    if(!(typeObject instanceof LoxType)) throw new RuntimeError(expr.operator, "Cannot cast '" + original + "' to '" + typeObject + "'");
+    LoxType type = (LoxType)typeObject;
+
+    if(original.isObject()) {
+      if(castee instanceof LoxInstance) {
+        LoxInstance instance = (LoxInstance)castee;
+        return callCastMethod(instance, type, expr.operator);
+      }
+    }
+    else{
+      try{
+        switch(type.type) {
+          case STRING:
+            return castee.toString();
+          case NUMBER: {
+              if(castee instanceof String) {
+                return Double.parseDouble((String)castee);
+              }
+              return (double)castee;
+            }
+          case BOOLEAN: {
+              if(castee instanceof String) {
+                return Boolean.parseBoolean((String)castee);
+              }
+              return (boolean)castee;
+            }
+            
+          case VOID:
+            return null;
+          default:
+            break;
+        }
+      }
+      catch (Exception e) {
+        throw new RuntimeError(expr.operator, "Cannot cast '" + original + "' to '" + type + "'");
+      }
+    }
+    throw new RuntimeError(expr.operator, "Cannot cast '" + original + "' to '" + type + "'");
+  }
+
+  public LoxProperty property(Property stmt) {
+    LoxFunction getter = new LoxFunction(stmt.get, environment, false, stmt.get.returnType, stmt.get.modifiers);
+    LoxFunction setter = null;
+    Object value = defaultValue(stmt.type);
+    if(stmt.set != null){
+      setter = new LoxFunction(stmt.set, environment, false, stmt.set.returnType, stmt.set.modifiers);
+    } 
+
+    LoxProperty property = new LoxProperty(stmt.name, stmt.modifiers, stmt.type, getter, setter);
+    property.value = value;
+
+    return property;
+  }
+
+  @Override
+  public Void visitPropertyStmt(Property stmt) {
+    LoxFunction getter = new LoxFunction(stmt.get, environment, false, stmt.get.returnType, stmt.get.modifiers);
+    LoxFunction setter = null;
+    Object value = defaultValue(stmt.type);
+    if(stmt.set != null){
+      setter = new LoxFunction(stmt.set, environment, false, stmt.set.returnType, stmt.set.modifiers);
+    } 
+
+    LoxProperty property = new LoxProperty(stmt.name, stmt.modifiers, stmt.type, getter, setter);
+    property.value = value;
+
+    environment.define(stmt.name.lexeme, property, stmt.modifiers, new LoxType(property));
+    return null;
+  }
+
+
+
+  private Object defaultValue(LoxType type) {
+    if(type.name.contains("[]")) {
+      return new LoxArray(type, 0);
+    }
+    switch(type.type) {
+      case STRING:
+        return "";
+      case NUMBER:
+        return 0.0;
+      case BOOLEAN:
+        return false;
+      case VOID:
+        return null;
+      default:
+        return null;
+    }
+  }
+
+
+
+  @Override
+  public Object visitSetAssignExpr(SetAssign expr) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitSetAssignExpr'");
+  }
+
+
+
+  @Override
+  public Object visitArrayExpr(Array expr) {
+    LoxType type = expr.type != null ? expr.type : new LoxType(evaluate(expr.values.get(0)));
+    Object defVal = defaultValue(type);
+    type.name+="[]";
+    int size = 0;
+    if(expr.size != null) {
+      size = (int)((double)evaluate(expr.size));
+    }
+    else{
+      size = expr.values.size();
+    }
+    LoxArray array = new LoxArray(type, size);
+
+    List<Object> values = new ArrayList<>();
+    if(expr.size == null) {
+      for(int i = 0; i < expr.values.size(); i++) {
+          values.add(evaluate(expr.values.get(i)));
+      }
+    }
+    else {
+      for(int i = 0; i < size; i++) {
+        values.add(defVal);
+      }
+    }  
+
+    for(int i = 0; i < values.size(); i++) {
+      array.set(i, values.get(i));
+    }
+
+    return array;
+  }
+
+  public Object callMethodOnObject(Token name, String methodName, List<Object> args, Object obj, boolean operator) {
+    if(obj instanceof LoxInstance) {
+      LoxFunction method = ((LoxInstance)obj).klass.findMethod(methodName, false);
+      if(method != null) {
+        return method.bind((LoxInstance)obj, this).callFunction(this, args, operator, new ArrayList<>());
+      }
+    }
+    else if(obj instanceof LoxClass) {
+      LoxFunction method = ((LoxClass)obj).findMethod(methodName, false);
+      if(method != null) {
+        return method.callFunction(this, args, operator, new ArrayList<>(0));
+      }
+    }
+    throw new RuntimeError(name, "Object of type '" + new LoxType(obj).name + "' does not define method '" + methodName + "'");
+  }
+
+  @Override
+  public Object visitGetIndexExpr(GetIndex expr) {
+    Object arrayObj  = evaluate(expr.object);
+    Object indexObj = evaluate(expr.index);
+    if(!(indexObj instanceof Double)) {
+      throw new RuntimeError(expr.name, "index operator can only take a number");
+    }
+    double index = Math.round((double)indexObj);
+    if(!(arrayObj instanceof LoxArray)) {
+      if(arrayObj instanceof String) {
+        return ((String)arrayObj).charAt((int)index);
+      }
+      else{
+        ArrayList<Object> args = new ArrayList<>();
+        args.add(index);
+        return callMethodOnObject(expr.name, "getAt", args, arrayObj, true);
+      }
+    }
+    
+    LoxArray array = (LoxArray)arrayObj;
+    return array.get((int)index);
+  }
+
+
+
+  @Override
+  public Object visitSetIndexExpr(SetIndex expr) {
+    Object arrayObj  = evaluate(expr.object);
+    Object indexObj = evaluate(expr.index);
+    Object valueObj = evaluate(expr.value);
+    if(!(indexObj instanceof Double)) {
+      if(indexObj instanceof Integer) {
+        indexObj = (double)((int)indexObj);
+      }
+      else throw new RuntimeError(expr.name, "Can only set number index of an array");
+    }
+    double index = Math.round((double)indexObj);
+    if(!(arrayObj instanceof LoxArray)) {
+      ArrayList<Object> args = new ArrayList<>();
+      args.add(index);
+      args.add(valueObj);
+      return callMethodOnObject(expr.name, "setAt", args, arrayObj, true);
+    }
+    
+    LoxArray array = (LoxArray)arrayObj;
+
+    array.set((int)index, valueObj);
+    return valueObj;
+  }
+
+
+
+  @Override
+  public Object visitLengthExpr(Length expr) {
+    Object obj = evaluate(expr.value);
+    if(obj instanceof String) {
+      return ((String)obj).length();
+    }
+    else if(obj instanceof LoxArray) {
+      return ((LoxArray)obj).getSize();
+    }
+    else {
+      if(obj instanceof LoxInstance) {
+        LoxInstance instance = (LoxInstance)obj;
+        LoxFunction method = instance.klass.findMethod("getSize", false);
+        if(method != null) {
+          if(method.returnType.type != TypeEnum.NUMBER) {
+            throw new RuntimeError(expr.name, "Object of type '" + new LoxType(obj).name + "' does not have a length");
+          }
+          return method.bind(instance, this).callFunction(this, new ArrayList<>(), false, new ArrayList<>());
+        }
+      }
+      throw new RuntimeError(expr.name, "Object of type '" + new LoxType(obj).name + "' does not have a length");
+    }
+  }
+
+
+
+  @Override
+  public Object visitTernaryExpr(Ternary expr) {
+    Object condition = evaluate(expr.condition);
+    if(isTruthy(condition)) {
+      return evaluate(expr.thenBranch);
+    }
+    else {
+      return evaluate(expr.elseBranch);
+    }
+  }
+
+
+
+  @Override
+  public Void visitTryStmt(Try stmt) {
+    try{
+      execute(stmt.tryBranch);
+    }
+    catch (com.nix.lox.Break b){
+      throw b;
+    }
+    catch (com.nix.lox.Continue c){
+      throw c;
+    }
+    catch (com.nix.lox.Return r){
+      throw r;
+    }
+    catch (com.nix.lox.Expect e){
+      throw e;
+    }
+    catch (com.nix.lox.RuntimeError e) {
+      if(stmt.catchBranch != null){
+        environment = new Environment(environment, this);
+        environment.define(stmt.exName.lexeme, e.getMessage(), new Modifiers(TokenType.CONST));
+        executeBlock(stmt.catchBranch, environment);
+        environment = environment.enclosing;
+      }
+    }
+    return null;
+  }
+
+
+
+  @Override
+  public Object visitTypeExpr(Type expr) {
+    return expr.type;
   }
 
   

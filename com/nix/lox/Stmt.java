@@ -23,6 +23,8 @@ abstract class Stmt {
     R visitCaseStmt(Case stmt);
     R visitBreakStmt(Break stmt);
     R visitContinueStmt(Continue stmt);
+    R visitPropertyStmt(Property stmt);
+    R visitTryStmt(Try stmt);
   }
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
@@ -37,11 +39,12 @@ abstract class Stmt {
     final List<Stmt> statements;
   }
   static class Class extends Stmt {
-    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase) {
+    Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Var> variables, List<Stmt.Property> props, List<Token> templates, List<Token> interfase) {
       this.name = name;
       this.superclass = superclass;
       this.methods = methods;
       this.variables = variables;
+      this.props = props;
       this.templates = templates;
       this.interfase = interfase;
     }
@@ -55,6 +58,7 @@ abstract class Stmt {
     final Expr.Variable superclass;
     final List<Stmt.Function> methods;
     final List<Stmt.Var> variables;
+    final List<Stmt.Property> props;
     final List<Token> templates;
     final List<Token> interfase;
   }
@@ -309,6 +313,42 @@ abstract class Stmt {
     }
 
     final Token keyword;
+  }
+  static class Property extends Stmt {
+    Property(Token name, Modifiers modifiers, LoxType type, Stmt.Function get, Stmt.Function set) {
+      this.name = name;
+      this.modifiers = modifiers;
+      this.type = type;
+      this.get = get;
+      this.set = set;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitPropertyStmt(this);
+    }
+
+    final Token name;
+    final Modifiers modifiers;
+    final LoxType type;
+    final Stmt.Function get;
+    final Stmt.Function set;
+  }
+  static class Try extends Stmt {
+    Try(Stmt tryBranch, List<Stmt> catchBranch, Token exName) {
+      this.tryBranch = tryBranch;
+      this.catchBranch = catchBranch;
+      this.exName = exName;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitTryStmt(this);
+    }
+
+    final Stmt tryBranch;
+    final List<Stmt> catchBranch;
+    final Token exName;
   }
 
    abstract <R> R accept(Visitor<R> visitor);

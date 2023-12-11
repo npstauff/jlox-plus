@@ -5,17 +5,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import com.nix.lox.Expr.AnonymousFunction;
+import com.nix.lox.Expr.Array;
+import com.nix.lox.Expr.Cast;
 import com.nix.lox.Expr.Coalesce;
 import com.nix.lox.Expr.Get;
+import com.nix.lox.Expr.GetIndex;
 import com.nix.lox.Expr.GetStatic;
+import com.nix.lox.Expr.Length;
 import com.nix.lox.Expr.New;
 import com.nix.lox.Expr.Set;
+import com.nix.lox.Expr.SetAssign;
+import com.nix.lox.Expr.SetIndex;
 import com.nix.lox.Expr.Super;
+import com.nix.lox.Expr.Ternary;
 import com.nix.lox.Expr.This;
+import com.nix.lox.Expr.Type;
 import com.nix.lox.Stmt.Class;
 import com.nix.lox.Stmt.GetFile;
 import com.nix.lox.Stmt.Interface;
 import com.nix.lox.Stmt.Module;
+import com.nix.lox.Stmt.Property;
+import com.nix.lox.Stmt.Try;
 import com.nix.lox.Stmt.When;
 
 public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
@@ -223,7 +234,7 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   private void resolveLocal(Expr expr, Token name) {
     for (int i = scopes.size() - 1; i >= 0; i--) {
       if(scopes.get(i).containsKey(name.lexeme)){
-        interpreter.resolve(expr, scopes.size() - 1 - i);
+        interpreter.resolve(name, scopes.size() - 1 - i);
         return;
       }
     }
@@ -241,9 +252,26 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
     scope.put(name.lexeme, false);
   }
 
+  private void declare(String name) {
+    if(scopes.isEmpty()) return;
+
+    Map<String, Boolean> scope = scopes.peek();
+
+    if(scope.containsKey(name)) {
+      Lox.error(new Token(TokenType.VOID, name, scope, 0), "Duplicate variable in scope");
+    }
+
+    scope.put(name, false);
+  }
+
   private void define(Token name) {
     if(scopes.isEmpty()) return;
     scopes.peek().put(name.lexeme, true);
+  }
+
+  private void define(String name) {
+    if(scopes.isEmpty()) return;
+    scopes.peek().put(name, true);
   }
 
   void resolve(List<Stmt> statements) {
@@ -290,9 +318,14 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
       beginScope();
       scopes.peek().put("super", true);
     }
+    
 
     beginScope();
     scopes.peek().put("this", true);
+    
+    for(Token template : stmt.templates){
+      scopes.peek().put(template.lexeme, true);
+    }
 
     for(Stmt.Function method : stmt.methods) {
       FunctionType declaration = FunctionType.METHOD;
@@ -300,6 +333,14 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
         declaration = FunctionType.INITIALIZER;
       }
       resolveFunction(method, declaration);
+    }
+
+    for(Stmt.Var variable : stmt.variables){
+      resolve(variable);
+    }
+
+    for(Stmt.Property property : stmt.props){
+      resolve(property);
     }
 
     endScope();
@@ -379,6 +420,12 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
   }
 
   @Override
+  public Void visitValueExpr(Expr.Value expr) {
+    resolveLocal(expr, expr.keyword);
+    return null;
+  }
+
+  @Override
   public Void visitSuperExpr(Super expr) {
     if (currentClass == ClassType.NONE) {
       Lox.error(expr.keyword,
@@ -411,6 +458,107 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void>{
 
   @Override
   public Void visitModuleStmt(Module stmt) {
+    return null;
+  }
+
+  @Override
+  public Void visitAnonymousFunctionExpr(AnonymousFunction expr) {
+      FunctionType enclosingFunction = currentFunction;
+      currentFunction = FunctionType.ANONYMOUS;
+
+      beginScope();
+      for (Parameter param : expr.params) {
+        declare(param.name);
+        define(param.name);
+      }
+      resolve(expr.body);
+      endScope();
+        
+      currentFunction = enclosingFunction;
+    return null;
+  }
+
+  @Override
+  public Void visitCastExpr(Cast expr) {
+    resolve(expr.value);
+    resolve(expr.castType);
+    return null;
+  }
+
+  @Override
+  public Void visitPropertyStmt(Property stmt) {
+    beginScope();
+      beginScope();
+        scopes.peek().put("value", true);
+        resolve(stmt.get);
+      endScope();
+      if(stmt.set != null) {
+        beginScope();
+          scopes.peek().put("value", true);
+          resolve(stmt.set);
+        endScope();
+      }
+    endScope();
+    return null;
+  }
+
+  @Override
+  public Void visitSetAssignExpr(SetAssign expr) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitSetAssignExpr'");
+  }
+
+  @Override
+  public Void visitArrayExpr(Array expr) {
+    if(expr.size != null) resolve(expr.size);
+    for(Expr e : expr.values){
+      resolve(e);
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitGetIndexExpr(GetIndex expr) {
+    resolve(expr.object);
+    resolve(expr.index);
+    return null;
+  }
+
+  @Override
+  public Void visitSetIndexExpr(SetIndex expr) {
+    resolve(expr.object);
+    resolve(expr.index);
+    resolve(expr.value);
+    return null;
+  }
+
+  @Override
+  public Void visitLengthExpr(Length expr) {
+    resolve(expr.value);
+    return null;
+  }
+
+  @Override
+  public Void visitTernaryExpr(Ternary expr) {
+    resolve(expr.condition);
+    resolve(expr.thenBranch);
+    resolve(expr.elseBranch);
+    return null;
+  }
+
+  @Override
+  public Void visitTryStmt(Try stmt) {
+    resolve(stmt.tryBranch);
+    beginScope();
+      declare(stmt.exName.lexeme);
+      define(stmt.exName.lexeme);
+      resolve(stmt.catchBranch);
+    endScope();
+    return null;
+  }
+
+  @Override
+  public Void visitTypeExpr(Type expr) {
     return null;
   }
 

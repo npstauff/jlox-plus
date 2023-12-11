@@ -18,4 +18,8 @@ public class Token implements Serializable{
   public String toString(){
     return type + " " + lexeme + " " + literal;
   }
+
+  public static Token basic() {
+    return new Token(TokenType.IDENTIFIER, "basic", null, 0);
+  }
 }

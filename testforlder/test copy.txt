@@ -1,0 +1,5 @@
+this is a copy
+num x = 10;
+void () {
+    print(x);
+}

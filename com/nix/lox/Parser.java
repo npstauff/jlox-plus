@@ -8,10 +8,23 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.nix.lox.LoxType.TypeEnum;
+import com.nix.lox.Stmt.Property;
+
 import static com.nix.lox.TokenType.*;
 
 public class Parser {
     private static class ParseError extends RuntimeException {}
+
+    private static final TokenType[] types = {
+      NUMPARAM,
+      STRPARAM,
+      BOOLEAN,
+      VOID,
+      OBJPARAM,
+      ANY,
+      BYTE,
+      TYPE
+    };
 
 
     private List<String> imports = new ArrayList<>();
@@ -27,7 +40,7 @@ public class Parser {
       List<Stmt> statements = new ArrayList<>();
       while(!isAtEnd()){
         statements.add(declaration());
-      }
+      } 
 
       return statements;
     }
@@ -42,7 +55,8 @@ public class Parser {
           modifiers.add(previous().type);
         }
         if(match(FUN)) return function("function", modifiers);
-        if(matchType()) return varDeclaration(modifiers);
+        LoxType type = null;
+        if((type = matchType(modifiers)) != null) return varDeclaration(modifiers, type);
 
         return statement();
       } catch(ParseError e){
@@ -51,14 +65,116 @@ public class Parser {
       }
     }
 
-    public boolean checkType() {
-        if(check(NUMPARAM) || check(STRPARAM) || check(BOOLEAN) || check(VOID) || check(OBJPARAM)) return true;
-        else return false;
+    private void expandType(LoxType type, boolean findBracket) {
+      if(type.type == TypeEnum.OBJECT) {
+        if(match(FUN)) {
+          type.name = getFuncPtr();
+        }
+        else{
+          type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
+        }
+      }
+      if(match(LEFT_BRACKET)) {
+        if(findBracket) type.name += arrayType();
+      }
     }
 
-    public boolean matchType() {
-        if(match(NUMPARAM) || match(STRPARAM) || match(BOOLEAN) || match(VOID) || match(OBJPARAM)) return true;
-        else return false;
+    public String arrayType() {
+        String name = "[]";
+        consume(RIGHT_BRACKET, "Expect ']' after array type");
+        if(match(LEFT_BRACKET)) {
+          name += arrayType();
+        }
+        return name;
+    }
+
+    public LoxType checkType(Modifiers modifiers, boolean findBracket) {
+      for(TokenType t : types){
+        if(check(t)) {
+          LoxType type = new LoxType(peek(), modifiers);
+          advance();
+          expandType(type, findBracket);
+          return type;
+        }
+      }
+      return null;
+    }
+
+    public LoxType checkType(Modifiers modifiers)  {
+      return checkType(modifiers, true);
+    }
+
+    public LoxType checkType() {
+      return checkType(Modifiers.empty());
+    }
+
+    public LoxType checkType(boolean findBracket)  {
+      return checkType(Modifiers.empty(), findBracket);
+    }
+
+    public LoxType matchType(Modifiers modifiers, boolean findBracket) {
+      for(TokenType t : types){
+        if(match(t)) {
+          LoxType type = new LoxType(previous(), modifiers);
+          expandType(type, findBracket);
+          return type;
+        }
+      }
+      return null;
+    }
+
+    public LoxType matchObjectType() {
+      LoxType t = matchType(Modifiers.empty());
+      if(t != null) {
+        if(t.type != TypeEnum.OBJECT) {
+          throw error(previous(), "Expected object type");
+        }
+      }
+      return t;
+    }
+
+    public LoxType matchType() {
+      return matchType(Modifiers.empty());
+    }
+
+    public LoxType matchType(Modifiers modifiers)  {
+      return matchType(modifiers, true);
+    }
+
+    public LoxType matchType(boolean findBracket)  {
+      return matchType(Modifiers.empty(), findBracket);
+    }
+
+    String getFuncPtr() {
+      String name = "func(";
+      consume(LEFT_PAREN, "expected function pointer type parameters");
+      int numParams = 0;
+      if(!check(RIGHT_PAREN)){
+        do{
+          numParams++;
+          LoxType type = new LoxType(advance());
+          if(type.type == TypeEnum.OBJECT)
+          {
+            if(match(FUN)) {
+              type.name = getFuncPtr();
+            }
+            else{
+              type.name = consume(IDENTIFIER, "Expect type name after 'obj'.").lexeme;
+            }
+          }
+          name += type.name + ", ";
+        } while (match(COMMA));
+      }
+      consume(RIGHT_PAREN, "Expect ')' after parameter types");
+      consume(COLON, "Expect ':' after function pointer parameters");
+      LoxType type = matchType(Modifiers.empty());
+      if(type == null) {
+        throw error(peek(), "Expected function pointer return type");
+      }
+      if(numParams > 0) name = name.substring(0, name.length() - 2);
+      name += ")";
+      name += ":"+type.name;
+      return name;
     }
 
     private Expr.Typeof typeof(){
@@ -88,55 +204,64 @@ public class Parser {
         } while(match(COMMA));
       }
 
+      if(match(COLON)){
+        consume(LESS, "Expect '<' after class name");
+        do{
+          types.add(consume(IDENTIFIER, "Expect type name"));
+        } while(match(COMMA));
+        consume(GREATER, "Expect '>' after type parameters");
+      }
+      
       consume(LEFT_BRACE, "Expect '{' before class body");
 
       List<Stmt.Function> methods = new ArrayList<>();
       List<Stmt.Var> variables = new ArrayList<>();
+      List<Stmt.Property> properties = new ArrayList<>();
       while(!check(RIGHT_BRACE) && !isAtEnd()){
+        LoxType rType = null;
         Modifiers modifiers = new Modifiers();
         while(matchModifier()){
           modifiers.add(previous().type);
         }
-        if(checkType()){
-            LoxType type = new LoxType(peek());
-            if(type.type == TypeEnum.OBJECT) {
-              advance();
-              if(match(FUN)) {
-                type.name = "func";
-              }
-              else{
-                type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-              }
+        LoxType type = null;
+        if((type = checkType(modifiers)) != null){
+          if(modifiers.contains(UNSIGNED) && type.type != TypeEnum.NUMBER){
+            Token t = new Token(previous().type, "unsigned " + previous().lexeme, previous().literal, previous().line);
+            throw error(t, "can only use unsigned modifier on numbers");
+          }
+          Token id = peek();
+          advance();
+          Expr expr = null;
+          if(match(EQUAL)){
+            expr = expression();
+          }
+          else if (match(LEFT_BRACE)) {
+            Property p = property(type, modifiers, id);
+            if(p != null) {
+              properties.add(p);
+              consume(RIGHT_BRACE, "Expect '}' after property declaration");
+              continue;
             }
-            else advance();
-
-            Token id = peek();
-            advance();
-            consume(EQUAL, "Expected equality");
-            Expr expr = expression();
-            consume(SEMICOLON, "Expect semicolon after variable");
-            variables.add(new Stmt.Var(id, expr, modifiers, type));
           }
-          else if(check(METHOD)){
-            advance();
-            methods.add(function("method", modifiers));
-          }
-          else if(check(OPERATOR)){
-            advance();
-            methods.add(function("method", modifiers));
-          }
-          else{
-            error(peek(), "Expected method or variable");
-          }
+          consume(SEMICOLON, "Expect semicolon after variable");
+          variables.add(new Stmt.Var(id, expr, modifiers, type));
+        }
+        else if((check(METHOD))){
+          advance();
+          methods.add(function("method", modifiers));
+        }
+        else{
+          error(peek(), "Expected method or variable");
+        }
       }
 
       consume(RIGHT_BRACE, "Expect '}' after class body");
 
-      return new Stmt.Class(name, superclass, methods, variables, types, interfase);
+      return new Stmt.Class(name, superclass, methods, variables, properties, types, interfase);
     }
 
     public boolean matchModifier() {
-      for(TokenType m : Modifiers.modifierTypes) {
+      for(TokenType m : Modifiers.MODIFIERS) {
         if(match(m)) return true;
       }
       return false;
@@ -153,19 +278,13 @@ public class Parser {
         while(matchModifier()){
           modifiers.add(previous().type);
         }
-        if(checkType()){
-            LoxType type = new LoxType(peek());
-            if(type.type == TypeEnum.OBJECT) {
-              advance();
-              if(match(FUN)) {
-                type.name = "func";
-              }
-              else{
-                type.name = consume(IDENTIFIER, "Expect type name after obj").lexeme;
-              }
+        LoxType type = null;
+        if((type = checkType(modifiers)) != null){
+            advance();
+            if(modifiers.contains(UNSIGNED) && type.type != TypeEnum.NUMBER){
+              Token t = new Token(previous().type, "unsigned " + previous().lexeme, previous().literal, previous().line);
+              throw error(t, "can only use unsigned modifier on numbers");
             }
-            else advance();
-
             Token id = peek();
             advance();
             consume(EQUAL, "Expected equality");
@@ -253,9 +372,12 @@ public class Parser {
     }
 
     private Stmt.Function function(String kind, Modifiers modifiers){
+      if(modifiers.contains(UNSIGNED)){
+        throw error(previous(), "can only use unsigned modifier on numbers");
+      }
       Token extClass = null;
       Token name = consume(IDENTIFIER, "Expect " + kind + " name or extension class.");
-      if(match(CLASSEXT)){
+      if(match(COLON)){
           extClass = name;
           name = consume(IDENTIFIER, "Expect " + kind + " name.");
       }
@@ -266,17 +388,7 @@ public class Parser {
           if(parameters.size() >= 255){
             error(peek(), "Cant have more than 255 parameters");
           }
-          LoxType type = new LoxType(advance());
-          if(type.type == TypeEnum.OBJECT)
-          {
-            if(peek().type == FUN) {
-              advance();
-              type.name = "func";
-            }
-            else{
-              type.name = consume(IDENTIFIER, "Expect type name after 'obj'.").lexeme;
-            }
-          }
+          LoxType type = matchType(modifiers);
           Token nameParam = consume(IDENTIFIER, "Expect parameter name.");
           parameters.add(new Parameter(nameParam, type));
         } while (match(COMMA));
@@ -285,11 +397,8 @@ public class Parser {
 
       consume(OUTARROW, "Expect '->' after parameters");
 
-      Token type = null;
-      if(checkType()) {
-        type = advance();
-      }
-      else{
+      LoxType type = matchType(modifiers);
+      if(type == null){
         error(peek(), "Expected return type");
       }
 
@@ -303,28 +412,55 @@ public class Parser {
       }
       
       return new Stmt.Function(name, extClass, parameters, body, modifiers,
-       hasBody, new LoxType(type));
+       hasBody, type);
     }
 
-    private Stmt varDeclaration(Modifiers modifiers){
-      Token type = previous();
-      LoxType lType = new LoxType(type);
-      if(lType.type == TypeEnum.OBJECT) {
-        if(match(FUN)){
-          lType.name = "func";
-        } 
-        else {
-          lType.name = consume(IDENTIFIER, "Expect type name after 'obj'.").lexeme;
-        }
+    private Stmt varDeclaration(Modifiers modifiers, LoxType type){
+      if(modifiers.contains(UNSIGNED) && type.type != TypeEnum.NUMBER){
+        Token t = new Token(previous().type, "unsigned " + previous().lexeme, previous().literal, previous().line);
+        throw error(t, "can only use unsigned modifier on numbers");
       }
       Token name = consume(IDENTIFIER, "Expect variable name.");
       Expr initializer = null;
+      Stmt.Property property = null;
       if(match(EQUAL)){
         initializer = expression();
       }
+      else if (match(LEFT_BRACE)) {
+        property = property(type, modifiers, name);
+      }
+      if(property != null) {
+        consume(RIGHT_BRACE, "Expect '}' after property declaration");
+        return property;
+      }
+      else consume(SEMICOLON, "Expect ';' after variable declaration");
+      
+      return new Stmt.Var(name, initializer, modifiers, type);
+    }
 
-      consume(SEMICOLON, "Expect ';' after variable declaration");
-      return new Stmt.Var(name, initializer,modifiers, lType);
+    private Stmt.Property property(LoxType type, Modifiers modifiers, Token name) {
+      consume(GET, "Expect 'get' after '{'");
+      consume(LEFT_BRACE, "Expect '{' after 'get'");
+      List<Stmt> getter = block();
+      Parameter value = new Parameter(new Token(TokenType.VALUE, "value", null, 0), type); 
+      Stmt.Function getFunc = new Stmt.Function(new Token(IDENTIFIER, "get", null, previous().line), null, new ArrayList<>() {
+        {
+          add(value);
+        }
+      }, getter, new Modifiers(), true, type);
+      Stmt.Function setFunc = null;
+      if(match(SET)){
+        consume(LEFT_BRACE, "Expect '{' after 'set'");
+        List<Stmt> setter = block();
+        Parameter sv = new Parameter(new Token(TokenType.VALUE, "value", null, 0), type); 
+        setFunc = new Stmt.Function(new Token(IDENTIFIER, "set", null, previous().line), null, new ArrayList<>() {
+          {
+            add(sv);
+          }
+        }, setter, new Modifiers(), true, type);
+      }
+
+      return new Stmt.Property(name, modifiers, type, getFunc, setFunc);
     }
 
     private Stmt statement(){
@@ -341,10 +477,24 @@ public class Parser {
       if(match(SWITCH)) return switchStatement();
       if(match(BREAK)) return breakStatement();
       if(match(CONTINUE)) return continueStatement();
+      if(match(TRY)) return tryStatement();
       
       if(match(LEFT_BRACE)) return new Stmt.Block(block());
 
       return expressionStatement();
+    }
+
+    private Stmt tryStatement() {
+      Token ex = new Token(TokenType.IDENTIFIER, "error", null, current);
+      Stmt tryBranch = statement();
+      consume(CATCH, "Expect 'catch' after try statement");
+      if(match(LEFT_PAREN)) {
+        ex = consume(IDENTIFIER, "Expect exception name after catch");
+        consume(RIGHT_PAREN, "Expect ')' after catch");
+      }
+      consume(LEFT_BRACE, "Expect '{' after catch");
+      List<Stmt> catchBranch = block();
+      return new Stmt.Try(tryBranch, catchBranch, ex);
     }
 
     private Stmt moduleStmt() {
@@ -490,10 +640,11 @@ public class Parser {
       consume(LEFT_PAREN, "Expect '(' after 'for'.");
       
       Stmt initializer;
+      LoxType type = null;
       if(match(SEMICOLON)){
         initializer = null;
-      }else if(match(VAR)){
-        initializer = varDeclaration(new Modifiers());
+      }else if((type = matchType(Modifiers.empty())) != null){
+        initializer = varDeclaration(new Modifiers(), type);
       } else{
         initializer = expressionStatement();
       }
@@ -593,11 +744,11 @@ public class Parser {
     }
 
     private Expr expression(){
-      return assignment();
+      return newExpr();
     }
 
     private Expr assignment(){
-      Expr expr = or();
+      Expr expr = cast();
 
       if(match(EQUAL, PLUS_ASSIGN, INCREMENT, MINUS_ASSIGN, DECREMENT, STAR_ASSIGN, POWER)){
         AssignType type = AssignType.SET;
@@ -643,8 +794,37 @@ public class Parser {
           Expr.GetStatic get = ((Expr.GetStatic)expr);
           return new Expr.Set(get.object, get.name, value);
         }
+        else if(expr instanceof Expr.GetIndex) {
+          Expr.GetIndex get = ((Expr.GetIndex)expr);
+          return new Expr.SetIndex(get.object, get.name, value, get.index);
+        }
 
         error(equals, "Invalid assignment target");
+      }
+      // else if(match(SETASSIGN)) {
+      //   Expr value = assignment();
+      //   if(expr instanceof Expr.Variable){
+      //     Token name = ((Expr.Variable)expr).name;
+      //     return new Expr.SetAssign(name, value);
+      //   } else if(expr instanceof Expr.Get){
+      //     Expr.Get get = ((Expr.Get)expr);
+      //     return new Expr.SetAssign(get.object, get.name, value);
+      //   }
+      //   else if(expr instanceof Expr.GetStatic){
+      //     Expr.GetStatic get = ((Expr.GetStatic)expr);
+      //     return new Expr.SetAssign(get.object, get.name, value);
+      //   }
+      // }
+      return expr;
+    }
+
+    private Expr cast() {
+      Expr expr = ternary();
+
+      if(match(AS)){
+        Token as = previous();
+        Expr right = expression();
+        return new Expr.Cast(as, expr, right);
       }
 
       return expr;
@@ -655,8 +835,22 @@ public class Parser {
 
       while(match(OR)){
         Token operator = previous();
-        Expr right = and();
+        Expr right = ternary();
         expr = new Expr.Logical(expr, operator, right);
+      }
+
+      return expr;
+    }
+
+    private Expr ternary() {
+      Expr expr = or();
+
+      if(match(QUESTION)){
+        Token operToken = previous();
+        Expr thenBranch = expression();
+        consume(COLON, "Expect ':' after then branch of ternary");
+        Expr elseBranch = expression();
+        expr = new Expr.Ternary(operToken, expr, thenBranch, elseBranch);
       }
 
       return expr;
@@ -679,7 +873,7 @@ public class Parser {
 
       while(match(IS)){
         Token operator = previous();
-        Expr right = equality();
+        Expr right = expression();
         expr = new Expr.Logical(expr, operator, right);
       }
 
@@ -725,6 +919,11 @@ public class Parser {
 
     private Token peek(){
       return tokens.get(current);
+    }
+
+    private Token peekNext(){
+      if(current + 1 >= tokens.size()) return null;
+      return tokens.get(current + 1);
     }
 
     private Token previous(){
@@ -774,13 +973,12 @@ public class Parser {
         return new Expr.Unary(operator, right);
       }
 
-      return call();
+      return call(false, null, false);
     }
 
 
-    private Expr call(){
-      Expr expr = primary();
-
+    private Expr call(boolean init, LoxType type, boolean foundIdentifier){
+      Expr expr = primary(foundIdentifier);
       while(true){
         if(match(NULL_GET)){
           Token name = consume(IDENTIFIER, "Expect property name after '?.'");
@@ -791,14 +989,35 @@ public class Parser {
         }
         else if(match(LEFT_PAREN)){
           expr = finishCall(expr, false);
-        } else if(match(DOT)){
+        }
+        else if(match(COLON)) {
+          consume(LESS, "Expect '<' after ':'");
+          List<Token> templates = new ArrayList<Token>();
+          do{
+            templates.add(consume(IDENTIFIER, "Expect type parameter name"));
+          } while(match(COMMA));
+          consume(GREATER, "Expect '>' after type parameters");
+          consume(LEFT_PAREN, "Expect '(' after type parameters");
+          expr = finishCall(expr, false, templates);
+        }
+        else if(match(DOT)){
           Token name = consume(IDENTIFIER, "Expect property name after '.'.");
           expr = new Expr.Get(expr, name);
         }
         else if(match(GETSTATIC)){
           Token name = consume(IDENTIFIER, "Expect function name after '::'.");
           expr = new Expr.GetStatic(expr, name);
-        } 
+        }
+        else if(match(LEFT_BRACKET)) {
+            Token name = previous();
+            Expr index = expression();
+            consume(RIGHT_BRACKET, "Expect ']' after index");
+            expr = new Expr.GetIndex(expr, index, name);
+        }
+        else if(type != null && init) {
+          consume(RIGHT_BRACKET, "Expect '[' after array type");
+          return new Expr.Array(type, new ArrayList<Expr>(), expr);
+        }
         else {
           break;
         }
@@ -808,6 +1027,10 @@ public class Parser {
     }
 
     private Expr finishCall(Expr callee, boolean nullCheck){
+      return finishCall(callee, nullCheck, new ArrayList<>());
+    }
+
+    private Expr finishCall(Expr callee, boolean nullCheck, List<Token> templates){
       List<Expr> arguments = new ArrayList<>();
       if(!check(RIGHT_PAREN)){
         do{
@@ -821,10 +1044,14 @@ public class Parser {
       Token paren = consume(RIGHT_PAREN,
                           "Expect ')' after arguments.");
       
-      return new Expr.Call(callee, paren, arguments, nullCheck);
+      return new Expr.Call(callee, paren, arguments, nullCheck, templates);
     }
 
-    private Expr primary(){
+    private Expr primary(boolean fi){
+      if(fi) {
+        return new Expr.Variable(previous());
+      }
+
       if(match(FALSE)) return new Expr.Literal(false);
       if(match(TRUE)) return new Expr.Literal(true);
       if(match(NIL)) return new Expr.Literal(null);
@@ -842,9 +1069,14 @@ public class Parser {
       }
 
       if (match(THIS)) return new Expr.This(previous());
+      if (match(VALUE)) return new Expr.Value(previous());
 
       if(match(IDENTIFIER)){
         return new Expr.Variable(previous());
+      }
+
+      if(match(ANONYMOUS)) {
+        return anonymousFunction();
       }
 
       if(match(LEFT_PAREN)){
@@ -856,15 +1088,110 @@ public class Parser {
         return new Expr.Literal(0);
       }
 
-      if(match(NEW)){
-        return call();
-      }
-
       if(match(TYPEOF)){
         return typeof();
       }
 
+      if(match(LENGTH)){
+        return length();
+      }
+
+      LoxType lt = null;
+      if((lt = checkAnon()) != null){
+        return anonymousFunction(lt);
+      }
+
       throw error(peek(), "Expect expression");
+    }
+
+    private Expr length() {
+      Token name = previous();
+      consume(LEFT_PAREN, "Expect '(' after 'length'");
+      Expr value = expression();
+      consume(RIGHT_PAREN, "Expect ')' after expression");
+      return new Expr.Length(value, name);
+    }
+
+    private LoxType checkAnon() {
+      LoxType t = checkType();
+      TokenType next = peek().type;
+      boolean b = t != null && next == LEFT_PAREN;
+      return b ? t : null;
+    }
+
+    private Expr newExpr() {
+      if(match(NEW)) {
+        LoxType type = null;
+        if((type = matchType(false)) != null) {
+          return call(true, type, false);
+        }
+        else if(match(IDENTIFIER)) {
+          return call(false, null, true);
+        }
+        if (type == null) {
+          error(peek(), "Expected array type or object type");
+        }
+      }
+      return anonymousFunction();
+    }
+
+    private Expr anonymousFunction(){
+      LoxType ret = null;
+      if((ret = matchType()) != null){
+        if(check(LEFT_PAREN)){
+            return anonymousFunction(ret);
+        }
+        return new Expr.Type(ret);
+      }
+      Expr expr = array();
+      return expr;
+    }
+
+    private Expr array() {
+      if(match(LEFT_BRACKET)) {
+        List<Expr> elements = new ArrayList<>();
+        LoxType type = matchType();
+        if(type == null) {
+          if(!check(RIGHT_BRACKET)){
+            do{
+              elements.add(expression());
+            } while (match(COMMA));
+          }
+        }
+        consume(RIGHT_BRACKET, "Expect ']' after array elements");
+        return new Expr.Array(type, elements, null);
+      }
+
+      Expr expr = assignment();
+      return expr;
+    }
+
+    private Expr anonymousFunction(LoxType ret) {
+      consume(LEFT_PAREN, "Expect '(' after 'anonymous function'");
+      List<Parameter> parameters = new ArrayList<>();
+      if(!check(RIGHT_PAREN)){
+        do{
+          if(parameters.size() >= 255){
+            error(peek(), "Cant have more than 255 parameters");
+          }
+          LoxType type = matchType(Modifiers.empty());
+          Token nameParam = consume(IDENTIFIER, "Expect parameter name.");
+          parameters.add(new Parameter(nameParam, type));
+        } while (match(COMMA));
+      }
+      consume(RIGHT_PAREN, "Expect ')' after parameters");
+
+      // consume(OUTARROW, "Expect '->' after parameters");
+
+      // LoxType type = matchType();
+      // if(type == null){
+      //   error(peek(), "Expected return type");
+      // }
+      List<Stmt> body = null;
+      consume(LEFT_BRACE, "Expect '{' before anonymous function body.");
+      body = block();
+
+      return new Expr.AnonymousFunction(parameters, body, ret);
     }
 
     public boolean isSpecialAssign(TokenType t){
@@ -873,13 +1200,12 @@ public class Parser {
 
     private Token consume(TokenType type, String message){
       if(check(type)) return advance();
-
       throw error(peek(), message);
     }
 
     private ParseError error(Token token, String message){
         Lox.error(token, message);
-        return new ParseError();
+        throw new ParseError();
     }
 
     private void synchronize(){

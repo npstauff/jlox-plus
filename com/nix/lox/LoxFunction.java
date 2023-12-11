@@ -6,7 +6,7 @@ import com.nix.lox.LoxType.TypeEnum;
 
 public class LoxFunction implements LoxCallable{
   public final Stmt.Function declaration;
-  private final Environment closure;
+  private Environment closure;
   private final boolean isInitializer;
   private final boolean isNative;
   private final LoxCallable callable;
@@ -34,11 +34,27 @@ public class LoxFunction implements LoxCallable{
     this.returnType = returnType;
   }
 
-  LoxFunction bind(LoxInstance instance){
-    Environment environment = new Environment(closure);
+  public LoxFunction(Expr.AnonymousFunction body, Environment environment, LoxType rType, Modifiers modifiers) {
+    declaration = new Stmt.Function(new Token(TokenType.ANONYMOUS, "null", null, 0), null, body.params, body.body, modifiers, null, rType);
+    this.closure = environment;
+    this.isInitializer = false;
+    this.isNative = false;
+    this.callable = null;
+    this.modifiers = modifiers;
+    this.returnType = rType;
+  }
+
+  LoxFunction bind(LoxInstance instance, Interpreter in){
+    Environment environment = closure;
     environment.define("this", instance, modifiers);
     if(!isNative) return new LoxFunction(declaration, environment, isInitializer, returnType, modifiers);
     else return new LoxFunction(callable, environment, isInitializer, returnType, modifiers);
+  }
+
+  public void define(String name, Object value, Modifiers modifiers, Interpreter in){
+    closure = new Environment(closure, in);
+    closure.define(name, value, modifiers);
+//    if(closure.enclosing != null) closure = closure.enclosing;
   }
 
   @Override
@@ -56,7 +72,7 @@ public class LoxFunction implements LoxCallable{
     return false;
   }
 
-  public Object callFunction(Interpreter interpreter, List<Object> arguments, boolean operatorCall) {
+  public Object callFunction(Interpreter interpreter, List<Object> arguments, boolean operatorCall, List<LoxClass> templates) {
     boolean isoperator = modifiers.contains(TokenType.OPERATOR);
     if(isoperator && !operatorCall) {
       throw new RuntimeError(declaration.name, "Operator method '" + declaration.name.lexeme + "' must be called by an operator");
@@ -64,7 +80,17 @@ public class LoxFunction implements LoxCallable{
     else if (!isoperator && operatorCall) {
       throw new RuntimeError(declaration.name, "Method '" + declaration.name.lexeme + "' must be an operator method");
     }
-    return call(interpreter, arguments);
+    return call(interpreter, arguments, templates);
+  }
+
+  public String getName(){
+    String types = "(";
+    for(int i = 0; i < declaration.params.size(); i++){
+      types += declaration.params.get(i).type.name;
+      if(i != declaration.params.size() - 1) types += ", ";
+    }
+    types += ")";
+    return declaration.name.lexeme;// + types;
   }
 
   public void checkParameters(List<Object> arguments){
@@ -75,18 +101,18 @@ public class LoxFunction implements LoxCallable{
         continue;
       }
       else{
-        throw new RuntimeError(declaration.name, "Expected type '" + paramType.type + "' for parameter '" + declaration.params.get(i).name.lexeme + "' of function '" + declaration.name.lexeme + "' but got type '" + argType.type + "' instead");
+        throw new RuntimeError(declaration.name, "Expected type '" + paramType + "' for parameter '" + declaration.params.get(i).name.lexeme + "' of function '" + declaration.name.lexeme + "' but got type '" + argType + "' instead");
       }
     }
   }
 
   @Override
-  public Object call(Interpreter interpreter, List<Object> arguments) {
+  public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
     
 
     global = inEnv(interpreter);
     if(isNative){
-      return callable.call(interpreter, arguments);
+      return callable.call(interpreter, arguments, templates);
     }
     if(global){
       if(!declaration.hasBody){
@@ -102,7 +128,7 @@ public class LoxFunction implements LoxCallable{
 
     checkParameters(arguments);
     
-    Environment environment = new Environment(closure);
+    Environment environment = new Environment(closure, interpreter);
     for (int i = 0; i < declaration.params.size(); i++) {
       environment.define(declaration.params.get(i).name.lexeme, arguments.get(i), new Modifiers());
     }
@@ -110,13 +136,13 @@ public class LoxFunction implements LoxCallable{
     try{
       interpreter.executeBlock(declaration.body, environment);
     } catch (Return returnValue){
-      if(!(new LoxType(returnValue.value).matches(returnType))) throw new RuntimeError(declaration.name, "Expected type '" + returnType.type + "' for function '" + declaration.name.lexeme + "' return value" );
+      if(!(new LoxType(returnValue.value).matches(returnType))) throw new RuntimeError(declaration.name, "Expected type '" + returnType + "' for function '" + declaration.name.lexeme + "' return value" );
 
       if (isInitializer) return closure.getAt(0, "this");
 
       return returnValue.value;
     }
-    if(returnType.type != TypeEnum.VOID) throw new RuntimeError(declaration.name, "Expected type function '" + declaration.name.lexeme + "' to return value of type '" + returnType.type + "'");
+    if(returnType.type != TypeEnum.VOID) throw new RuntimeError(declaration.name, "Expected type function '" + declaration.name.lexeme + "' to return value of type '" + returnType + "'");
 
     if(isInitializer) return closure.getAt(0, "this");
     return null;

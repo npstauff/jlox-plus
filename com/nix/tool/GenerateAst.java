@@ -13,26 +13,36 @@ public class GenerateAst {
       defineAst(ouputDir, "Expr", Arrays.asList(
         "Assign   : Token name, Expr value, AssignType type",
         "Binary   : Expr left, Token operator, Expr right",
-        "Call     : Expr callee, Token paren, List<Expr> arguments, boolean nullCheck",
+        "Call     : Expr callee, Token paren, List<Expr> arguments, boolean nullCheck, List<Token> templates",
         "Get      : Expr object, Token name",
+        "GetIndex : Expr object, Expr index, Token name",
         "GetStatic: Expr object, Token name",
+        "SetAssign: Expr object, Token name, Expr value",
         "Coalesce      : Expr object, Token name",
         "Grouping : Expr expression",
         "Literal  : Object value",
         "Logical  : Expr left, Token operator, Expr right",
         "Set      : Expr object, Token name, Expr value",
+        "SetIndex : Expr object, Token name, Expr value, Expr index",
         "Super    : Token keyword, Token method",
         "This     : Token keyword",
+        "Value     : Token keyword",
         "Unary    : Token operator, Expr right",
         "Variable : Token name",
         "New      : Token keyword, Expr callee, Token paren, List<Expr> arguments",
-        "Typeof: Expr value"
+        "Typeof: Expr value",
+        "Length: Expr value, Token name",
+        "AnonymousFunction: List<Parameter> params, List<Stmt> body, LoxType returnType",
+        "Cast: Token operator, Expr value, Expr castType",
+        "Array: LoxType type, List<Expr> values, Expr size",
+        "Ternary: Token operator, Expr condition, Expr thenBranch, Expr elseBranch",
+        "Type: LoxType type"
       ));
 
       defineAst(ouputDir, "Stmt", Arrays.asList(
         "Block      : List<Stmt> statements",
         "Class      : Token name, Expr.Variable superclass," +
-                  " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Token> templates, List<Token> interfase",
+                  " List<Stmt.Function> methods, List<Stmt.Var> variables, List<Stmt.Property> props, List<Token> templates, List<Token> interfase",
         "Expression : Expr expression",
         "Function   : Token name, Token extClass, List<Parameter> params," +
                   " List<Stmt> body, Modifiers modifiers, Boolean hasBody, LoxType returnType",
@@ -51,8 +61,9 @@ public class GenerateAst {
         "Switch : Expr value, List<Stmt.Case> cases, Stmt.Case defaultCase",
         "Case: Expr value, Stmt body",
         "Break: Token keyword",
-        "Continue: Token keyword"
-        
+        "Continue: Token keyword",
+        "Property: Token name, Modifiers modifiers, LoxType type, Stmt.Function get, Stmt.Function set",
+        "Try: Stmt tryBranch, List<Stmt> catchBranch, Token exName"
       ));
     } catch (IOException e) {
       e.printStackTrace();

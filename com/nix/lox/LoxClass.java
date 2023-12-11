@@ -1,5 +1,6 @@
 package com.nix.lox;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,18 +27,16 @@ public class LoxClass implements LoxCallable{
   String name;
   LoxClass superClass;
   Interpreter interpreter;
-  Map<String, LoxClass> templates = new HashMap<>();
+  List<Token> templates = new ArrayList<>();
+  Environment environment;
 
-  LoxClass(String name, LoxClass superclass, Map<String, LoxFunction> methods, Map<String, Field> fields,Interpreter interpreter){
+  LoxClass(Environment environment, String name, LoxClass superclass, Map<String, LoxFunction> methods, Map<String, Field> fields,Interpreter interpreter){
     this.name = name;
     this.methods = methods;
     this.superClass = superclass;
     this.interpreter = interpreter;
     this.fields = fields;
-  }
-
-  public void setTemplates(Map<String, LoxClass> templates){
-    this.templates = templates;
+    this.environment = environment;
   }
 
   LoxFunction findMethod(String name, boolean staticGet){
@@ -62,7 +61,7 @@ public class LoxClass implements LoxCallable{
     return null;
   }
 
-  Object findField(String name, boolean staticGet){
+  Field findField(String name, boolean staticGet){
     if(fields.containsKey(name)){
       if(staticGet){
         if(!fields.get(name).modifiers.contains(TokenType.STATIC)){
@@ -74,7 +73,12 @@ public class LoxClass implements LoxCallable{
           System.out.println("[WARNING] use field '" + name + "' from static context");
         }
       }
-      return fields.get(name).value;
+      if(fields.get(name).value instanceof LoxProperty) {
+        LoxProperty property = (LoxProperty) fields.get(name).value;
+        property.value = getProperty(property);
+        return new Field(property.value, fields.get(name).modifiers, fields.get(name).type);
+      }
+      return fields.get(name);
     }
 
     if(superClass != null){
@@ -82,6 +86,10 @@ public class LoxClass implements LoxCallable{
     }
 
     return null;
+  }
+
+  public Object getProperty(LoxProperty property) {
+      return property.get(interpreter);
   }
 
   Field set(String name, Object value){
@@ -118,10 +126,28 @@ public class LoxClass implements LoxCallable{
     }
   }
 
+  public void setProperty(String name, Field obj, Object value) {
+    if(obj.value instanceof LoxProperty) {
+      LoxProperty property = (LoxProperty) obj.value;
+      ArrayList<Object> args = new ArrayList<>();
+      args.add(value);
+      if(property.getSet() != null) property.value = property.set(interpreter, args);
+      else throw new RuntimeError(property.getName(), "Cannot assign to property '" + property.getName().lexeme + "' because it is read-only");
+      obj.value = property;
+      fields.put(name, obj);
+      return;
+    }
+  }
+
   Field put(String name, Object value, Modifiers modifiers, LoxType type){
+    Interpreter.checkModifiers(modifiers, type, value, name);
     Field newf = new Field(value, modifiers, type);
     if(fields.containsKey(name)){
       Field f = fields.get(name);
+      if(f.value instanceof LoxProperty) {
+        setProperty(name, f, value);
+        return f;
+      }
       checkType(new LoxType(f.value), type);    
       if(f.modifiers.contains(TokenType.CONST)){
         throw new RuntimeError(new Token(TokenType.VAR, "name", f.value, 0), "Cant assign to constant '" + name +"'");
@@ -131,6 +157,10 @@ public class LoxClass implements LoxCallable{
       }
     }
     else{
+      if(newf.value instanceof LoxProperty) {
+        setProperty(name, newf, value);
+        return newf;
+      }
       fields.put(name, newf);
     }
     return newf;
@@ -149,13 +179,26 @@ public class LoxClass implements LoxCallable{
   }
 
   @Override
-  public Object call(Interpreter interpreter, List<Object> arguments) {
+  public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
     LoxInstance instance = new LoxInstance(this, interpreter);
+    bindTemplates(templates, instance);
     LoxFunction initializer = findMethod("constructor", false);
     if(initializer != null) {
-      initializer.bind(instance).call(interpreter, arguments);
+      initializer.bind(instance, interpreter).call(interpreter, arguments, templates);
     }
     return instance;
+  }
+
+  public void bindTemplates(List<LoxClass> generics, LoxInstance instance) {
+    if(templates.size() == 0) return;
+    if(generics.size() != templates.size()) {
+      throw new RuntimeError(new Token(TokenType.IDENTIFIER, "name", generics, 0), "Incorrect number of generic types for class '" + name + "'");
+    }
+    for(int i = 0; i < generics.size(); i++) {
+      LoxClass generic = generics.get(i);
+      Token template = templates.get(i);
+      environment.assign(template, generic);
+    }
   }
 
 }

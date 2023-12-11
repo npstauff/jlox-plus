@@ -34,11 +34,11 @@ public class LoxMap extends LoxNative{
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         return items.get(arguments.get(0));
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers());
 }
 
 private LoxFunction put(Environment environment) {
@@ -50,12 +50,12 @@ private LoxFunction put(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         items.put(arguments.get(0), arguments.get(1));
         return null;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers());
 }
 
 private LoxFunction keys(Environment environment) {
@@ -67,17 +67,17 @@ private LoxFunction keys(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         LoxInstance list = new LoxInstance(new LoxList(environment, interpreter, type), interpreter);
         for(Object o : items.keySet()){
           ArrayList<Object> objs = new ArrayList<>();
           objs.add(o);
-          list.klass.findMethod("add",false).call(interpreter, objs);
+          list.klass.findMethod("add",false).call(interpreter, objs, templates);
         }
         return list;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers());
 }
 
 private LoxFunction values(Environment environment) {
@@ -89,17 +89,17 @@ private LoxFunction values(Environment environment) {
       }
 
       @Override
-      public Object call(Interpreter interpreter, List<Object> arguments) {
+      public Object call(Interpreter interpreter, List<Object> arguments, List<LoxClass> templates) {
         LoxInstance list = new LoxInstance(new LoxList(environment, interpreter, type), interpreter);
         for(Object o : items.values()){
           ArrayList<Object> objs = new ArrayList<>();
           objs.add(o);
-          list.klass.findMethod("add", false).call(interpreter, objs);
+          list.klass.findMethod("add", false).call(interpreter, objs, templates);
         }
         return list;
       }
       
-    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers(TokenType.STATIC));
+    }, environment, false, new LoxType(name, TypeEnum.OBJECT), new Modifiers());
 }
 
 
